@@ -17,16 +17,23 @@ int main(void)
     SetTargetFPS(60);
 
     // CONFIG DO GRID
-    int gridSize = 5;
-    float tileSize = 1.0f;
-    float offset = (gridSize * tileSize) / 2.0f;
+    int gridSizeX= 4;
+    int gridSizeZ= 2;
+    float tileWidth = 2.0f;//eixo x
+    float tileDepth = 3.0f; //eixo y
+    float offsetX = (gridSizeX * tileWidth) / 2.0f;
+    float offsetZ = (gridSizeZ * tileDepth) / 2.0f;
 
-    float startX = -offset;
-    float startZ = -offset;
+    float startX = -offsetX;
+    float startZ = -offsetZ;
 
     // PLAYER NO GRID
     int playerGX = 2;
     int playerGZ = 2;
+
+    bool tileAtivo = false; //seleção de carta
+    int marcadoGX = -1;
+    int marcadoGZ = -1;
 
     while (!WindowShouldClose())
     {
@@ -35,17 +42,25 @@ int main(void)
         if (IsKeyPressed(KEY_A)) playerGX--;
         if (IsKeyPressed(KEY_W)) playerGZ--;
         if (IsKeyPressed(KEY_S)) playerGZ++;
+        if (IsKeyPressed(KEY_ENTER)){
+            
+            marcadoGX = playerGX;
+            marcadoGZ = playerGZ;
+        }
 
         // LIMITES DO MAPA
         if (playerGX < 0) playerGX = 0;
         if (playerGZ < 0) playerGZ = 0;
-        if (playerGX >= gridSize) playerGX = gridSize - 1;
-        if (playerGZ >= gridSize) playerGZ = gridSize - 1;
+        if (playerGX >= gridSizeX) playerGX = gridSizeX - 1;
+        if (playerGZ >= gridSizeZ) playerGZ = gridSizeZ - 1;
 
         // CONVERTER GRID → MUNDO
-        float playerX = startX + (playerGX + 0.5f) * tileSize;
-        float playerZ = startZ + (playerGZ + 0.5f) * tileSize;
+        float playerX = startX + (playerGX + 0.5f) * tileWidth;
+        float playerZ = startZ + (playerGZ + 0.5f) * tileDepth;
 
+
+        float markX = startX + (marcadoGX + 0.5f) * tileWidth;
+        float markZ = startZ + (marcadoGZ + 0.5f) * tileDepth;
         // ================= DESENHO =================
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -53,28 +68,41 @@ int main(void)
         BeginMode3D(camera);
 
         // CHÃO
-        DrawPlane((Vector3){0,0,0}, (Vector2){5,5}, GREEN);
+        DrawPlane((Vector3){0,0,0}, (Vector2){8,6}, GREEN);
+        DrawPlane((Vector3){0,0,3.5}, (Vector2){8,1}, DARKGRAY);
+        DrawPlane((Vector3){0,0,-3.5}, (Vector2){8,1}, DARKGRAY);
+
+
+        if (marcadoGX != -1)
+        {
+            DrawCube(
+                (Vector3){markX, 0.02f, markZ},
+                tileWidth, 0.02f, tileDepth,
+                BLUE
+            );
+        }
+        
 
         // GRID
-        for (int i = 0; i <= gridSize; i++)
+        for (int i = 0; i <= gridSizeX; i++)
         {
             DrawLine3D(
-                (Vector3){-offset, 0.01f, -offset + i * tileSize},
-                (Vector3){ offset, 0.01f, -offset + i * tileSize},
+                (Vector3){-offsetX, 0.01f, -offsetZ + i * tileDepth},
+                (Vector3){ offsetX, 0.01f, -offsetZ + i * tileDepth},
                 BLACK
             );
 
             DrawLine3D(
-                (Vector3){-offset + i * tileSize, 0.01f, -offset},
-                (Vector3){-offset + i * tileSize, 0.01f,  offset},
+                (Vector3){-offsetX + i * tileWidth, 0.01f, -offsetZ},
+                (Vector3){-offsetX + i * tileWidth, 0.01f,  offsetZ},
                 BLACK
             );
         }
 
         // PLAYER (AGORA É O CUBO)
         Vector3 Playerpos3D = {playerX, 0.25f, playerZ};
-        DrawCube(Playerpos3D, 1, 0.5, 1, RED);
-        DrawCubeWires(Playerpos3D, 1.0f, 0.5f, 1.0f,BLACK);
+        DrawCube(Playerpos3D, 2, 0.1, 3, RED);
+        DrawCubeWires(Playerpos3D, 2.0f, 0.1f, 3.0f,BLACK);
 
         EndMode3D();
 
