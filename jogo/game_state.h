@@ -2,19 +2,10 @@
 #define GAME_STATE_H
 
 #include <stdbool.h>
+#include "card.h"
+#include "monster.h"
 
 #define MAX_HAND_SLOTS 3
-
-typedef struct {
-    int owner;
-    int slot;
-    int power;
-} MonsterPlacement;
-
-typedef struct {
-    int owner; // 0 ou 1, -1 se vazio
-    int slot;
-} CardPlacement;
 
 typedef struct {
     CardPlacement card;

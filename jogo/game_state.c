@@ -21,13 +21,10 @@ void InitGameState(int gridX, int gridZ)
     g_gridZ = gridZ;
     g_tiles = (TileEntity*)malloc(sizeof(TileEntity) * gridX * gridZ);
     for (int i = 0; i < gridX * gridZ; i++) {
-        g_tiles[i].card.owner = -1;
-        g_tiles[i].card.slot = -1;
+        g_tiles[i].card = EmptyCardPlacement();
         g_tiles[i].monsterCount = 0;
         for (int m = 0; m < 2; m++) {
-            g_tiles[i].monsters[m].owner = -1;
-            g_tiles[i].monsters[m].slot = -1;
-            g_tiles[i].monsters[m].power = 0;
+            g_tiles[i].monsters[m] = EmptyMonsterPlacement();
         }
     }
     InitPlayerHands();
@@ -108,8 +105,7 @@ bool PlaceCardAt(int gx, int gz, int owner, int slot)
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
     if (!CanPlaceCardAt(gx, gz)) return false;
-    tile->card.owner = owner;
-    tile->card.slot = slot;
+    tile->card = MakeCardPlacement(owner, slot);
     return true;
 }
 
@@ -119,9 +115,7 @@ bool PlaceMonsterAt(int gx, int gz, int owner, int slot)
     if (!tile) return false;
     if (tile->card.owner == -1) return false;
     if (tile->monsterCount >= 2) return false;
-    tile->monsters[tile->monsterCount].owner = owner;
-    tile->monsters[tile->monsterCount].slot = slot;
-    tile->monsters[tile->monsterCount].power = slot + 1;
+    tile->monsters[tile->monsterCount] = MakeMonsterPlacement(owner, slot);
     tile->monsterCount++;
     return true;
 }
@@ -130,13 +124,10 @@ void ClearTile(int gx, int gz)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return;
-    tile->card.owner = -1;
-    tile->card.slot = -1;
+    tile->card = EmptyCardPlacement();
     tile->monsterCount = 0;
     for (int m = 0; m < 2; m++) {
-        tile->monsters[m].owner = -1;
-        tile->monsters[m].slot = -1;
-        tile->monsters[m].power = 0;
+        tile->monsters[m] = EmptyMonsterPlacement();
     }
 }
 
@@ -192,13 +183,10 @@ int CountCardsOnMap(void)
 TileEntity GetTileAt(int gx, int gz)
 {
     TileEntity empty;
-    empty.card.owner = -1;
-    empty.card.slot = -1;
+    empty.card = EmptyCardPlacement();
     empty.monsterCount = 0;
     for (int m = 0; m < 2; m++) {
-        empty.monsters[m].owner = -1;
-        empty.monsters[m].slot = -1;
-        empty.monsters[m].power = 0;
+        empty.monsters[m] = EmptyMonsterPlacement();
     }
 
     TileEntity *tile = GetTilePtr(gx, gz);
