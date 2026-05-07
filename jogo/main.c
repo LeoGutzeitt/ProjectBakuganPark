@@ -66,6 +66,20 @@ int main(void)
     int battleResolveTimer = 0;
     int battleResolveGX = -1;
     int battleResolveGZ = -1;
+
+    Texture2D playerTexture = LoadTexture("img/carta-base.png");
+    printf("Texture ID: %d\n", playerTexture.id);
+
+    if (playerTexture.id == 0)
+    {
+        printf("ERRO AO CARREGAR TEXTURA!\n");
+    }
+    else
+    {
+        printf("Textura carregada!\n");
+    }
+
+
     while (!WindowShouldClose())
     {
         if (battleResolveTimer > 0) {
@@ -221,13 +235,35 @@ int main(void)
         // ================= DESENHO =================
         BeginDrawing();
         ClearBackground(RAYWHITE);
+        // teste 2D
+        DrawTexture(playerTexture, 100, 100, WHITE);
 
         BeginMode3D(camera);
         DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ);
 
-        // Jogador (agora é o cubo)
+        // Jogador
         Vector3 Playerpos3D = {playerX, 0.25f, playerZ};
+
+        // base do player
         DrawCube(Playerpos3D, 2.0f, 0.1f, 3.0f, RED);
+
+        DrawCubeWires(Playerpos3D, 2.0f, 0.1f, 3.0f, BLACK);
+
+        // posição da sprite
+        Vector3 spritePos = {
+            Playerpos3D.x,
+            Playerpos3D.y + 1.5f,
+            Playerpos3D.z
+        };
+
+        // sprite 2D no mundo 3D
+        DrawBillboard(
+            camera,
+            playerTexture,
+            spritePos,
+            3.0f,
+            WHITE
+        );
         DrawCubeWires(Playerpos3D, 2.0f, 0.1f, 3.0f, BLACK);
 
         // Desenha as entidades colocadas no estado do jogo (cartas e monstros no mapa)
@@ -325,6 +361,7 @@ int main(void)
         EndDrawing();
     }
 
+    UnloadTexture(playerTexture);
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
     FreeGameState();
