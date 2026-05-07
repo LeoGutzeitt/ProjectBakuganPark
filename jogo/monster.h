@@ -12,7 +12,7 @@ typedef struct {
 MonsterPlacement MakeMonsterPlacement(int owner, int slot);
 MonsterPlacement EmptyMonsterPlacement(void);
 int MonsterPlacementOwner(MonsterPlacement monster);
-int MonsterPlacementSlot(MonsterPlacement monster);
+int SlotDoMonstro(MonsterPlacement monster);
 int MonsterPlacementPower(MonsterPlacement monster);
 bool MonsterPlacementIsEmpty(MonsterPlacement monster);
 

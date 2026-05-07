@@ -1,6 +1,6 @@
 #include "card.h"
 
-CardPlacement MakeCardPlacement(int owner, int slot)
+CardPlacement CriarCarta(int owner, int slot)
 {
     CardPlacement card;
     card.owner = owner;
@@ -8,22 +8,22 @@ CardPlacement MakeCardPlacement(int owner, int slot)
     return card;
 }
 
-CardPlacement EmptyCardPlacement(void)
+CardPlacement CartaVazia(void)
 {
-    return MakeCardPlacement(-1, -1);
+    return CriarCarta(-1, -1);
 }
 
-int CardPlacementOwner(CardPlacement card)
+int DonoDaCarta(CardPlacement card)
 {
     return card.owner;
 }
 
-int CardPlacementSlot(CardPlacement card)
+int SlotDaCarta(CardPlacement card)
 {
     return card.slot;
 }
 
-bool CardPlacementIsEmpty(CardPlacement card)
+bool CartaEstaVazia(CardPlacement card)
 {
     return card.owner == -1;
 }

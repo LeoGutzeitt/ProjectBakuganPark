@@ -23,7 +23,7 @@ int MonsterPlacementOwner(MonsterPlacement monster)
     return monster.owner;
 }
 
-int MonsterPlacementSlot(MonsterPlacement monster)
+int SlotDoMonstro(MonsterPlacement monster)
 {
     return monster.slot;
 }

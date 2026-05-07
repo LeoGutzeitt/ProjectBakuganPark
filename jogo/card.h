@@ -8,10 +8,10 @@ typedef struct {
     int slot;
 } CardPlacement;
 
-CardPlacement MakeCardPlacement(int owner, int slot);
-CardPlacement EmptyCardPlacement(void);
-int CardPlacementOwner(CardPlacement card);
-int CardPlacementSlot(CardPlacement card);
-bool CardPlacementIsEmpty(CardPlacement card);
+CardPlacement CriarCarta(int owner, int slot);
+CardPlacement CartaVazia(void);
+int DonoDaCarta(CardPlacement card);
+int SlotDaCarta(CardPlacement card);
+bool CartaEstaVazia(CardPlacement card);
 
 #endif // fim de CARD_H

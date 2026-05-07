@@ -21,7 +21,7 @@ void InitGameState(int gridX, int gridZ)
     g_gridZ = gridZ;
     g_tiles = (TileEntity*)malloc(sizeof(TileEntity) * gridX * gridZ);
     for (int i = 0; i < gridX * gridZ; i++) {
-        g_tiles[i].card = EmptyCardPlacement();
+        g_tiles[i].card = CartaVazia();
         g_tiles[i].monsterCount = 0;
         for (int m = 0; m < 2; m++) {
             g_tiles[i].monsters[m] = EmptyMonsterPlacement();
@@ -105,7 +105,7 @@ bool PlaceCardAt(int gx, int gz, int owner, int slot)
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
     if (!CanPlaceCardAt(gx, gz)) return false;
-    tile->card = MakeCardPlacement(owner, slot);
+    tile->card = CriarCarta(owner, slot);
     return true;
 }
 
@@ -124,7 +124,7 @@ void ClearTile(int gx, int gz)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return;
-    tile->card = EmptyCardPlacement();
+    tile->card = CartaVazia();
     tile->monsterCount = 0;
     for (int m = 0; m < 2; m++) {
         tile->monsters[m] = EmptyMonsterPlacement();
@@ -183,7 +183,7 @@ int CountCardsOnMap(void)
 TileEntity GetTileAt(int gx, int gz)
 {
     TileEntity empty;
-    empty.card = EmptyCardPlacement();
+    empty.card = CartaVazia();
     empty.monsterCount = 0;
     for (int m = 0; m < 2; m++) {
         empty.monsters[m] = EmptyMonsterPlacement();
