@@ -33,6 +33,7 @@ bool PlayerHasMonsterInHand(int player);
 int PlayerCardSlotAvailable(int player);
 
 // Coloca entidades no mapa; retorna true em caso de sucesso
+bool CanPlaceCardAt(int gx, int gz);
 bool PlaceCardAt(int gx, int gz, int owner, int slot);
 bool PlaceMonsterAt(int gx, int gz, int owner, int slot);
 
@@ -43,6 +44,7 @@ void ClearTile(int gx, int gz);
 
 // Consultas
 int CountPlayerCardsOnMap(int player);
+int CountCardsOnMap(void);
 TileEntity GetTileAt(int gx, int gz);
 bool TileHasCard(int gx, int gz);
 int GetTileMonsterCount(int gx, int gz);

@@ -67,11 +67,47 @@ int PlayerCardSlotAvailable(int player)
     return -1;
 }
 
-bool PlaceCardAt(int gx, int gz, int owner, int slot)
+bool CanPlaceCardAt(int gx, int gz)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
     if (tile->card.owner != -1) return false;
+
+    // Limite global de cartas no tabuleiro.
+    if (CountCardsOnMap() >= 4) return false;
+
+    // Primeira carta da partida pode ser colocada em qualquer tile vazio.
+    bool hasAnyCard = false;
+    for (int z = 0; z < g_gridZ; z++) {
+        for (int x = 0; x < g_gridX; x++) {
+            if (g_tiles[z * g_gridX + x].card.owner != -1) {
+                hasAnyCard = true;
+                break;
+            }
+        }
+        if (hasAnyCard) break;
+    }
+    if (!hasAnyCard) return true;
+
+    // Depois da primeira, só pode em tiles vizinhos (inclui diagonal).
+    for (int dz = -1; dz <= 1; dz++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            if (dx == 0 && dz == 0) continue;
+            int nx = gx + dx;
+            int nz = gz + dz;
+            TileEntity *neighbor = GetTilePtr(nx, nz);
+            if (neighbor && neighbor->card.owner != -1) return true;
+        }
+    }
+
+    return false;
+}
+
+bool PlaceCardAt(int gx, int gz, int owner, int slot)
+{
+    TileEntity *tile = GetTilePtr(gx, gz);
+    if (!tile) return false;
+    if (!CanPlaceCardAt(gx, gz)) return false;
     tile->card.owner = owner;
     tile->card.slot = slot;
     return true;
@@ -136,6 +172,18 @@ int CountPlayerCardsOnMap(int player)
         for (int x = 0; x < g_gridX; x++) {
             TileEntity te = g_tiles[z * g_gridX + x];
             if (te.card.owner == player) c++;
+        }
+    }
+    return c;
+}
+
+int CountCardsOnMap(void)
+{
+    int c = 0;
+    for (int z = 0; z < g_gridZ; z++) {
+        for (int x = 0; x < g_gridX; x++) {
+            TileEntity te = g_tiles[z * g_gridX + x];
+            if (te.card.owner != -1) c++;
         }
     }
     return c;

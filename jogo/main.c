@@ -140,7 +140,13 @@ int main(void)
                                 marcadoGX = marcadoGZ = -1;
                                 activePlayer ^= 1; // passa a vez
                             } else {
-                                strncpy(placeMessage, "Tile ja tem carta", sizeof(placeMessage)-1);
+                                if (TileHasCard(marcadoGX, marcadoGZ)) {
+                                    strncpy(placeMessage, "Tile ja tem carta", sizeof(placeMessage)-1);
+                                } else if (CountCardsOnMap() >= 4) {
+                                    strncpy(placeMessage, "Limite de 4 cartas no tabuleiro atingido", sizeof(placeMessage)-1);
+                                } else {
+                                    strncpy(placeMessage, "Carta deve encostar em outra carta (lado/diagonal)", sizeof(placeMessage)-1);
+                                }
                             }
                             break;
                         }
