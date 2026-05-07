@@ -10,12 +10,12 @@ void GridToWorld(int gx, int gz, float tileWidth, float tileDepth, float offsetX
 
 void DrawBattleMap(int gridSizeX, int gridSizeZ, float tileWidth, float tileDepth, float offsetX, float offsetZ, int marcadoGX, int marcadoGZ)
 {
-    // CHÃO
+    // Chão
     DrawPlane((Vector3){0,0,0}, (Vector2){8,6}, GREEN);
     DrawPlane((Vector3){0,0,3.5f}, (Vector2){8,1}, DARKGRAY);
     DrawPlane((Vector3){0,0,-3.5f}, (Vector2){8,1}, DARKGRAY);
 
-    // MARCAÇÃO
+    // Marcação
     if (marcadoGX != -1 && marcadoGZ != -1)
     {
         float markX, markZ;
@@ -23,7 +23,7 @@ void DrawBattleMap(int gridSizeX, int gridSizeZ, float tileWidth, float tileDept
         DrawCube((Vector3){markX, 0.02f, markZ}, tileWidth, 0.02f, tileDepth, BLUE);
     }
 
-    // GRID
+    // Grid
     for (int i = 0; i <= gridSizeZ; i++)
     {
         DrawLine3D(

@@ -21,30 +21,30 @@ int main(void)
 
     SetTargetFPS(60);
 
-    // CONFIG DO GRID
+    // Configuração do grid
     int gridSizeX= 4;
     int gridSizeZ= 2;
-    float tileWidth = 2.0f;//eixo x
-    float tileDepth = 3.0f; //eixo y
+    float tileWidth = 2.0f;// eixo x
+    float tileDepth = 3.0f; // eixo y
     float offsetX = (gridSizeX * tileWidth) / 2.0f;
     float offsetZ = (gridSizeZ * tileDepth) / 2.0f;
 
     float startX = -offsetX;
     float startZ = -offsetZ;
 
-    // PLAYER NO GRID
+    // Jogador no grid
     int playerGX = 2;
     int playerGZ = 2;
 
-    bool tileAtivo = false; //seleção de carta
+    bool tileAtivo = false; // seleção de carta
     int marcadoGX = -1;
     int marcadoGZ = -1;
 
-    // PLACAR (0..3)
+    // Placar (0..3)
     int player1Score = 0;
     int player2Score = 0;
 
-    // ÍCONES - criar dinamicamente em vez de carregar arquivo
+    // Ícones - criar dinamicamente em vez de carregar arquivo
     int iconSize = 48;
     Image iconP1Img = GenImageColor(iconSize, iconSize, ORANGE);
     Image iconP2Img = GenImageColor(iconSize, iconSize, RED);
@@ -53,7 +53,7 @@ int main(void)
     UnloadImage(iconP1Img);
     UnloadImage(iconP2Img);
 
-    // inicializa estado do jogo (mapa e mãos)
+    // Inicializa o estado do jogo (mapa e mãos)
     InitGameState(gridSizeX, gridSizeZ);
 
     int activePlayer = 0; // 0 = P1, 1 = P2
@@ -61,7 +61,7 @@ int main(void)
     int playerMonsters[2][3];
 
     char placeMessage[128] = {0};
-    int placedFeedbackTimer = 0; // feedback animation timer
+    int placedFeedbackTimer = 0; // temporizador de feedback visual
     char battleMessage[128] = {0};
     int battleResolveTimer = 0;
     int battleResolveGX = -1;
@@ -117,10 +117,10 @@ int main(void)
             marcadoGZ = -1;
         }
 
-        // Update feedback timer
+        // Atualiza o temporizador de feedback
         if (placedFeedbackTimer > 0) placedFeedbackTimer--;
 
-        // Escolher tipo apenas se tile está marcado
+        // Escolhe ação apenas se o tile estiver marcado
         if (battleResolveTimer == 0 && marcadoGX != -1 && marcadoGZ != -1) {
             GetPlayerHands(playerCards, playerMonsters);
             bool canPlaceMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
@@ -130,15 +130,15 @@ int main(void)
                 if (!playerCards[activePlayer][0] && !playerCards[activePlayer][1] && !playerCards[activePlayer][2]) {
                     strncpy(placeMessage, "Sem cartas na mao", sizeof(placeMessage)-1);
                 } else {
-                    // Find first available card
+                    // Procura a primeira carta disponível
                     for (int s = 0; s < 3; s++) {
                         if (playerCards[activePlayer][s]) {
                             if (PlaceCardAt(marcadoGX, marcadoGZ, activePlayer, s)) {
                                 RemovePlayerCardFromHand(activePlayer, s);
                                 snprintf(placeMessage, sizeof(placeMessage)-1, "Colocado carta no tile (%d,%d)", marcadoGX, marcadoGZ);
-                                placedFeedbackTimer = 60; // 1 second at 60 FPS
+                                placedFeedbackTimer = 60; // 1 segundo a 60 FPS
                                 marcadoGX = marcadoGZ = -1;
-                                activePlayer ^= 1; // pass turn
+                                activePlayer ^= 1; // passa a vez
                             } else {
                                 strncpy(placeMessage, "Tile ja tem carta", sizeof(placeMessage)-1);
                             }
@@ -155,7 +155,7 @@ int main(void)
                 } else if (!playerMonsters[activePlayer][0] && !playerMonsters[activePlayer][1] && !playerMonsters[activePlayer][2]) {
                     strncpy(placeMessage, "Sem monstros na mao", sizeof(placeMessage)-1);
                 } else {
-                    // Find first available monster
+                    // Procura o primeiro monstro disponível
                     for (int s = 0; s < 3; s++) {
                         if (playerMonsters[activePlayer][s]) {
                             if (PlaceMonsterAt(marcadoGX, marcadoGZ, activePlayer, s)) {
@@ -186,7 +186,7 @@ int main(void)
                                 }
 
                                 marcadoGX = marcadoGZ = -1;
-                                activePlayer ^= 1; // pass turn
+                                activePlayer ^= 1; // passa a vez
                             } else {
                                 strncpy(placeMessage, "Tile sem carta ou ja tem monstro", sizeof(placeMessage)-1);
                             }
@@ -197,16 +197,16 @@ int main(void)
             }
         }
 
-        // trocar jogador manualmente (apenas para teste)
+        // Troca o jogador manualmente (apenas para teste)
         if (IsKeyPressed(KEY_T)) activePlayer ^= 1;
 
-        // LIMITES DO MAPA
+        // Limites do mapa
         if (playerGX < 0) playerGX = 0;
         if (playerGZ < 0) playerGZ = 0;
         if (playerGX >= gridSizeX) playerGX = gridSizeX - 1;
         if (playerGZ >= gridSizeZ) playerGZ = gridSizeZ - 1;
 
-        // CONVERTER GRID → MUNDO (usa função do módulo)
+        // Converte grid → mundo (usa função do módulo)
         float playerX, playerZ;
         GridToWorld(playerGX, playerGZ, tileWidth, tileDepth, offsetX, offsetZ, &playerX, &playerZ);
 
@@ -219,17 +219,17 @@ int main(void)
         BeginMode3D(camera);
         DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ);
 
-        // PLAYER (AGORA É O CUBO)
+        // Jogador (agora é o cubo)
         Vector3 Playerpos3D = {playerX, 0.25f, playerZ};
         DrawCube(Playerpos3D, 2.0f, 0.1f, 3.0f, RED);
         DrawCubeWires(Playerpos3D, 2.0f, 0.1f, 3.0f, BLACK);
 
-        // Draw placed entities from game state (cartas e monstros no mapa)
+        // Desenha as entidades colocadas no estado do jogo (cartas e monstros no mapa)
         for (int gz = 0; gz < GetGridSizeZ(); gz++) {
             for (int gx = 0; gx < GetGridSizeX(); gx++) {
                 TileEntity te = GetTileAt(gx, gz);
                 
-                // Draw card if present
+                // Desenha a carta, se existir
                 if (te.card.owner != -1) {
                     float ex, ez;
                     GridToWorld(gx, gz, tileWidth, tileDepth, offsetX, offsetZ, &ex, &ez);
@@ -240,7 +240,7 @@ int main(void)
                     DrawCubeWires(cardPos, 1.8f, 0.05f, 2.4f, BLACK);
                 }
                 
-                // Draw monster(s) if present (on top of card, flutuando)
+                // Desenha o(s) monstro(s), se existir(em), acima da carta
                 if (te.monsterCount > 0) {
                     float ex, ez;
                     GridToWorld(gx, gz, tileWidth, tileDepth, offsetX, offsetZ, &ex, &ez);
@@ -258,14 +258,14 @@ int main(void)
 
         EndMode3D();
 
-        // HUD: ícones e barras de pontos (max 3)
+        // HUD: ícones e barras de pontos (máximo 3)
         int hudY = 10;
 
-        // Player 1 (left)
+        // Jogador 1 (esquerda)
         if (iconP1.id != 0) DrawTexture(iconP1, 10, hudY, WHITE);
         else DrawRectangle(10, hudY, 48, 48, MAROON);
         DrawText("P1", 10 + 48 + 6, hudY + 6, 18, BLACK);
-        // barras de pontos P1
+        // Barras de pontos do P1
         for (int i = 0; i < 3; i++) {
             int bx = 10 + 48 + 6 + 40 + i * 22;
             int by = hudY + 6;
@@ -273,15 +273,15 @@ int main(void)
             if (i < player1Score) DrawRectangle(bx+1, by+1, 16, 16, GOLD);
         }
 
-        // Player 2 (right) - layout espelhado of P1
+        // Jogador 2 (direita) - layout espelhado do P1
         int p2x = screenWidth - 10 - 48;
-        int p2TextX = p2x - 36; // texto fica à esquerda do ícone
+        int p2TextX = p2x - 36; // o texto fica à esquerda do ícone
         if (iconP2.id != 0) DrawTexture(iconP2, p2x, hudY, WHITE);
         else DrawRectangle(p2x, hudY, 48, 48, DARKBLUE);
         DrawText("P2", p2TextX, hudY + 6, 18, BLACK);
-        // barras de pontos P2 (esquerda do texto, espelhadas)
+        // Barras de pontos do P2 (à esquerda do texto, espelhadas)
         for (int i = 0; i < 3; i++) {
-            int bx = p2TextX - 40 - i * 22; // avançar à esquerda
+            int bx = p2TextX - 40 - i * 22; // avança para a esquerda
             int by = hudY + 6;
             DrawRectangleLines(bx, by, 18, 18, BLACK);
             if (i < player2Score) DrawRectangle(bx+1, by+1, 16, 16, GOLD);
@@ -289,17 +289,17 @@ int main(void)
 
         DrawText("WASD para mover (1 tile por vez)", 10, screenHeight - 30, 20, BLACK);
 
-        // Draw bottom menu with available slots
+        // Desenha o menu inferior com os slots disponíveis
         GetPlayerHands(playerCards, playerMonsters);
         DrawBottomMenu(screenWidth, screenHeight, activePlayer, playerCards, playerMonsters);
 
-        // Draw selection menu if tile is marked
+        // Desenha o menu de seleção se o tile estiver marcado
         if (marcadoGX != -1 && marcadoGZ != -1) {
             bool canPickMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
             DrawSelectionMenu(screenWidth, screenHeight, canPickMonster, activePlayer);
         }
 
-        // Draw placement feedback with animation
+        // Desenha o feedback visual da colocação
         if (battleResolveTimer > 0 && battleMessage[0] != '\0') {
             DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0, 0, 0, 35});
             DrawText(battleMessage, screenWidth/2 - MeasureText(battleMessage, 20)/2, 40, 20, YELLOW);
@@ -312,7 +312,7 @@ int main(void)
             DrawRectangleLines(screenWidth/2 - feedbackSize/2, screenHeight/2 - feedbackSize/2, feedbackSize, feedbackSize, (Color){0, 255, 0, (unsigned char)(255 * alpha)});
         }
 
-        // Instructions
+        // Instruções
         DrawText("ENTER marca tile, C coloca carta, M coloca monstro, ESC desmarca, T troca jogador", 10, screenHeight - 52, 14, DARKGRAY);
         if (placeMessage[0] != '\0') DrawText(placeMessage, 10, screenHeight - 72, 14, RED);
 

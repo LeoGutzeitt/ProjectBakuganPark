@@ -3,11 +3,11 @@
 
 #include "raylib.h"
 
-// Draw bottom menu with monster slots (circles) and card slots (rectangles)
+// Desenha o menu inferior com slots de monstro (círculos) e cartas (retângulos)
 void DrawBottomMenu(int screenWidth, int screenHeight, int activePlayer, int playerCards[2][3], int playerMonsters[2][3]);
 
-// Draw menu when tile is marked: user chooses carta (C) or monstro (M)
-// canPickMonster: true if player already has a card on map (can pick monster)
+// Desenha o menu quando o tile está marcado: o jogador escolhe carta (C) ou monstro (M)
+// canPickMonster: verdadeiro se o jogador já tem uma carta no mapa (pode escolher monstro)
 void DrawSelectionMenu(int screenWidth, int screenHeight, bool canPickMonster, int activePlayer);
 
-#endif // UI_H
+#endif // fim de UI_H

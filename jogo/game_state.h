@@ -12,7 +12,7 @@ typedef struct {
 } MonsterPlacement;
 
 typedef struct {
-    int owner; // 0 or 1, -1 if none
+    int owner; // 0 ou 1, -1 se vazio
     int slot;
 } CardPlacement;
 
@@ -22,26 +22,26 @@ typedef struct {
     int monsterCount;
 } TileEntity;
 
-// Initialize game state for grid
+// Inicializa o estado do jogo para o grid
 void InitGameState(int gridX, int gridZ);
 void FreeGameState(void);
 
-// Player hand management (0 or 1)
+// Gerenciamento da mão dos jogadores (0 ou 1)
 void InitPlayerHands(void);
 bool PlayerHasCardInHand(int player);
 bool PlayerHasMonsterInHand(int player);
 int PlayerCardSlotAvailable(int player);
 
-// Place entity on map; returns true on success
+// Coloca entidades no mapa; retorna true em caso de sucesso
 bool PlaceCardAt(int gx, int gz, int owner, int slot);
 bool PlaceMonsterAt(int gx, int gz, int owner, int slot);
 
-// Resolve battle when a tile has 2 monsters.
-// Returns true when the tile was resolved and cleared.
+// Resolve a batalha quando um tile tem 2 monstros.
+// Retorna true quando o tile foi resolvido e limpo.
 bool ResolveTileBattle(int gx, int gz, int *outWinnerOwner);
 void ClearTile(int gx, int gz);
 
-// Query
+// Consultas
 int CountPlayerCardsOnMap(int player);
 TileEntity GetTileAt(int gx, int gz);
 bool TileHasCard(int gx, int gz);
@@ -50,11 +50,11 @@ int GetTileMonsterCount(int gx, int gz);
 int GetGridSizeX(void);
 int GetGridSizeZ(void);
 
-// Remove from hand when placed
+// Remove da mão quando colocado
 void RemovePlayerCardFromHand(int player, int slot);
 void RemovePlayerMonsterFromHand(int player, int slot);
 
-// Copy current hands into provided arrays (must be size [2][3])
+// Copia as mãos atuais para os vetores informados (devem ter tamanho [2][3])
 void GetPlayerHands(int outCards[2][3], int outMonsters[2][3]);
 
-#endif // GAME_STATE_H
+#endif // fim de GAME_STATE_H

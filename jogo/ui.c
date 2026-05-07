@@ -18,7 +18,7 @@ void DrawBottomMenu(int screenWidth, int screenHeight, int activePlayer, int pla
     int padding = 20;
     int iconSize = 44;
 
-    // Monsters (left side)
+    // Monstros (lado esquerdo)
     int mx = padding;
     DrawText(activePlayer == 0 ? "Monstros P1:" : "Monstros P2:", mx, y + 8, 18, turnColor);
     for (int i = 0; i < 3; i++) {
@@ -30,7 +30,7 @@ void DrawBottomMenu(int screenWidth, int screenHeight, int activePlayer, int pla
         DrawText(TextFormat("%d", i + 1), cx - 4, cy - 8, 12, WHITE);
     }
 
-    // Cards (right side)
+    // Cartas (lado direito)
     int cxBase = screenWidth - padding - (iconSize+10)*3;
     DrawText(activePlayer == 0 ? "Cartas P1:" : "Cartas P2:", cxBase - 92, y + 8, 18, turnColor);
     for (int i = 0; i < 3; i++) {
