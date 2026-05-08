@@ -236,7 +236,7 @@ int main(void)
         DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ);
 
         // posição da carta
-        Vector3 cardPos = {playerX, 1.5f, playerZ};
+        Vector3 cardPos = {playerX, 0.5f, playerZ};
 
         // desenha a carta deitada
         DrawModel(
