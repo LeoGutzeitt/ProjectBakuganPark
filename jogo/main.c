@@ -68,17 +68,11 @@ int main(void)
     int battleResolveGZ = -1;
 
     Texture2D playerTexture = LoadTexture("img/carta-base.png");
-    printf("Texture ID: %d\n", playerTexture.id);
+    Mesh cardMesh = GenMeshPlane(2.0f, 3.0f, 1, 1);
 
-    if (playerTexture.id == 0)
-    {
-        printf("ERRO AO CARREGAR TEXTURA!\n");
-    }
-    else
-    {
-        printf("Textura carregada!\n");
-    }
+    Model cardModel = LoadModelFromMesh(cardMesh);
 
+    cardModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = playerTexture;
 
     while (!WindowShouldClose())
     {
@@ -241,30 +235,16 @@ int main(void)
         BeginMode3D(camera);
         DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ);
 
-        // Jogador
-        Vector3 Playerpos3D = {playerX, 0.25f, playerZ};
+        // posição da carta
+        Vector3 cardPos = {playerX, 1.5f, playerZ};
 
-        // base do player
-        DrawCube(Playerpos3D, 2.0f, 0.1f, 3.0f, RED);
-
-        DrawCubeWires(Playerpos3D, 2.0f, 0.1f, 3.0f, BLACK);
-
-        // posição da sprite
-        Vector3 spritePos = {
-            Playerpos3D.x,
-            Playerpos3D.y + 1.5f,
-            Playerpos3D.z
-        };
-
-        // sprite 2D no mundo 3D
-        DrawBillboard(
-            camera,
-            playerTexture,
-            spritePos,
-            3.0f,
+        // desenha a carta deitada
+        DrawModel(
+            cardModel,
+            cardPos,
+            1.0f,
             WHITE
         );
-        DrawCubeWires(Playerpos3D, 2.0f, 0.1f, 3.0f, BLACK);
 
         // Desenha as entidades colocadas no estado do jogo (cartas e monstros no mapa)
         for (int gz = 0; gz < GetGridSizeZ(); gz++) {
@@ -360,7 +340,8 @@ int main(void)
 
         EndDrawing();
     }
-
+    
+    UnloadModel(cardModel);
     UnloadTexture(playerTexture);
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
