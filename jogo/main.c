@@ -104,13 +104,20 @@ int main(void)
     // =========================
 
     Texture2D playerTexture = LoadTexture("img/carta-base.png");
-    Texture2D monsterTexture = LoadTexture("img/monster.png");
+    
+    Texture2D monsterStage0 = LoadTexture("img/monster.png");
+    Texture2D monsterStage1 = LoadTexture("img/monster1.png");
+    Texture2D monsterStage2 = LoadTexture("img/monster2.png");
 
     // =========================
     // ANIMAÇÃO
     // =========================
 
     MonsterAnimation monsterAnim = {0};
+    
+    int transformStage = 0;
+    int transformTimer = 0;
+    bool transforming = false;
 
     // =========================
     // MODELO DA CARTA
@@ -167,6 +174,38 @@ int main(void)
                 monsterAnim.position = monsterAnim.target;
                 monsterAnim.active = false;
                 monsterAnim.rotation = 0.0f;
+
+                transforming = true;
+                transformStage = 0;
+                transformTimer = 0;
+            }
+        }
+    
+        
+        // =========================
+        // TRANSFORMAÇÃO
+        // =========================
+
+        if (transforming)
+        {
+            transformTimer++;
+
+            // após 30 frames -> estágio 1
+            if (transformTimer > 30)
+            {
+                transformStage = 1;
+            }
+
+            // após 60 frames -> estágio 2
+            if (transformTimer > 60)
+            {
+                transformStage = 2;
+            }
+
+            // termina animação
+            if (transformTimer > 90)
+            {
+                transforming = false;
             }
         }
 
@@ -493,6 +532,25 @@ int main(void)
         );
 
         // =========================
+        // ESCOLHE TEXTURA
+        // =========================
+
+        Texture2D currentTexture;
+
+        if (transformStage == 0)
+        {
+            currentTexture = monsterStage0;
+        }
+        else if (transformStage == 1)
+        {
+            currentTexture = monsterStage1;
+        }
+        else
+        {
+            currentTexture = monsterStage2;
+        }
+
+        // =========================
         // PLAYER
         // =========================
 
@@ -594,7 +652,7 @@ int main(void)
                         {
                             DrawBillboard(
                                 camera,
-                                monsterTexture,
+                                currentTexture,
                                 monsterPos,
                                 1.2f,
                                 WHITE
@@ -614,8 +672,8 @@ int main(void)
             Rectangle source = {
                 0,
                 0,
-                (float)monsterTexture.width,
-                (float)monsterTexture.height
+                (float)currentTexture.width,
+                (float)currentTexture.height
             };
 
             Vector2 origin = {
@@ -625,7 +683,7 @@ int main(void)
 
             DrawBillboardPro(
                 camera,
-                monsterTexture,
+                currentTexture,
                 source,
                 monsterAnim.position,
                 (Vector3){0.0f, 1.0f, 0.0f},
@@ -802,7 +860,9 @@ int main(void)
     UnloadModel(cardModel);
 
     UnloadTexture(playerTexture);
-    UnloadTexture(monsterTexture);
+    UnloadTexture(monsterStage0);
+    UnloadTexture(monsterStage1);
+    UnloadTexture(monsterStage2);
 
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
