@@ -1,9 +1,18 @@
 #include "raylib.h"
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
+
 #include "battle_map.h"
 #include "game_state.h"
 #include "ui.h"
+
+typedef struct MonsterAnimation {
+    Vector3 position;
+    Vector3 target;
+    float rotation;
+    bool active;
+} MonsterAnimation;
 
 int main(void)
 {
@@ -11,6 +20,7 @@ int main(void)
     const int screenHeight = 700;
 
     InitWindow(screenWidth, screenHeight, "Grid Movement");
+
     Camera3D camera = { 0 };
     camera.position = (Vector3){ 0.0f, 5.0f, 8.0f };
     camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
@@ -20,82 +30,208 @@ int main(void)
 
     SetTargetFPS(60);
 
-    // Configuração do grid
-    int gridSizeX= 4;
-    int gridSizeZ= 2;
-    float tileWidth = 2.0f;// eixo x
-    float tileDepth = 3.0f; // eixo y
+    // =========================
+    // CONFIGURAÇÃO DO GRID
+    // =========================
+
+    int gridSizeX = 4;
+    int gridSizeZ = 2;
+
+    float tileWidth = 2.0f;
+    float tileDepth = 3.0f;
+
     float offsetX = (gridSizeX * tileWidth) / 2.0f;
     float offsetZ = (gridSizeZ * tileDepth) / 2.0f;
 
-    float startX = -offsetX;
-    float startZ = -offsetZ;
+    // =========================
+    // PLAYER
+    // =========================
 
-    // Jogador no grid
     int playerGX = 2;
-    int playerGZ = 2;
+    int playerGZ = 1;
 
-    bool tileAtivo = false; // seleção de carta
     int marcadoGX = -1;
     int marcadoGZ = -1;
 
-    // Placar (0..3)
+    // =========================
+    // PLACAR
+    // =========================
+
     int player1Score = 0;
     int player2Score = 0;
 
-    // Ícones - criar dinamicamente em vez de carregar arquivo
+    // =========================
+    // ICONES
+    // =========================
+
     int iconSize = 48;
+
     Image iconP1Img = GenImageColor(iconSize, iconSize, ORANGE);
     Image iconP2Img = GenImageColor(iconSize, iconSize, RED);
+
     Texture2D iconP1 = LoadTextureFromImage(iconP1Img);
     Texture2D iconP2 = LoadTextureFromImage(iconP2Img);
+
     UnloadImage(iconP1Img);
     UnloadImage(iconP2Img);
 
-    // Inicializa o estado do jogo (mapa e mãos)
+    // =========================
+    // GAME STATE
+    // =========================
+
     InitGameState(gridSizeX, gridSizeZ);
 
-    int activePlayer = 0; // 0 = P1, 1 = P2
+    int activePlayer = 0;
+
     int playerCards[2][3];
     int playerMonsters[2][3];
 
+    // =========================
+    // MENSAGENS
+    // =========================
+
     char placeMessage[128] = {0};
-    int placedFeedbackTimer = 0; // temporizador de feedback visual
+    int placedFeedbackTimer = 0;
+
     char battleMessage[128] = {0};
+
     int battleResolveTimer = 0;
     int battleResolveGX = -1;
     int battleResolveGZ = -1;
 
+    // =========================
+    // TEXTURAS
+    // =========================
+
     Texture2D playerTexture = LoadTexture("img/carta-base.png");
     Texture2D monsterTexture = LoadTexture("img/monster.png");
+
+    // =========================
+    // ANIMAÇÃO
+    // =========================
+
+    MonsterAnimation monsterAnim = {0};
+
+    // =========================
+    // MODELO DA CARTA
+    // =========================
+
     Mesh cardMesh = GenMeshPlane(2.0f, 3.0f, 1, 1);
 
     Model cardModel = LoadModelFromMesh(cardMesh);
 
     cardModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = playerTexture;
 
+    // =========================
+    // random
+    // =========================
+
+    int randX = GetRandomValue(-10, 10);
+    int randZ = GetRandomValue(-10, 10);
+
+    // =========================
+    // LOOP PRINCIPAL
+    // =========================
+
+
+
     while (!WindowShouldClose())
     {
-        if (battleResolveTimer > 0) {
+        // =========================
+        // ANIMAÇÃO DO MONSTRO
+        // =========================
+
+        if (monsterAnim.active)
+        {
+            float speed = 6.0f * GetFrameTime();
+
+            monsterAnim.position.x +=
+                (monsterAnim.target.x - monsterAnim.position.x) * speed;
+
+            monsterAnim.position.y +=
+                (monsterAnim.target.y - monsterAnim.position.y) * speed;
+
+            monsterAnim.position.z +=
+                (monsterAnim.target.z - monsterAnim.position.z) * speed;
+
+            monsterAnim.rotation += 720.0f * GetFrameTime();
+
+            float dx = monsterAnim.target.x - monsterAnim.position.x;
+            float dy = monsterAnim.target.y - monsterAnim.position.y;
+            float dz = monsterAnim.target.z - monsterAnim.position.z;
+
+            float dist = sqrtf(dx*dx + dy*dy + dz*dz);
+
+            if (dist < 0.05f)
+            {
+                monsterAnim.position = monsterAnim.target;
+                monsterAnim.active = false;
+                monsterAnim.rotation = 0.0f;
+            }
+        }
+
+        // =========================
+        // RESOLVE BATALHA
+        // =========================
+
+        if (battleResolveTimer > 0)
+        {
             battleResolveTimer--;
-            if (battleResolveTimer == 0 && battleResolveGX != -1 && battleResolveGZ != -1) {
-                TileEntity battleTile = GetTileAt(battleResolveGX, battleResolveGZ);
+
+            if (battleResolveTimer == 0 &&
+                battleResolveGX != -1 &&
+                battleResolveGZ != -1)
+            {
+                TileEntity battleTile =
+                    GetTileAt(battleResolveGX, battleResolveGZ);
+
                 MonsterPlacement m0 = battleTile.monsters[0];
                 MonsterPlacement m1 = battleTile.monsters[1];
+
                 int winnerOwner = -1;
 
-                if (ResolveTileBattle(battleResolveGX, battleResolveGZ, &winnerOwner)) {
+                if (ResolveTileBattle(
+                        battleResolveGX,
+                        battleResolveGZ,
+                        &winnerOwner))
+                {
                     if (winnerOwner == 0) player1Score++;
                     else if (winnerOwner == 1) player2Score++;
 
-                    if (m0.owner == m1.owner) {
-                        snprintf(placeMessage, sizeof(placeMessage) - 1, "P%d colocou 2 monstros e levou o ponto", winnerOwner + 1);
-                    } else if (m0.power > m1.power) {
-                        snprintf(placeMessage, sizeof(placeMessage) - 1, "P%d venceu a batalha e levou o ponto", m0.owner + 1);
-                    } else if (m1.power > m0.power) {
-                        snprintf(placeMessage, sizeof(placeMessage) - 1, "P%d venceu a batalha e levou o ponto", m1.owner + 1);
-                    } else {
-                        snprintf(placeMessage, sizeof(placeMessage) - 1, "Empate: ponto do dono da carta P%d", winnerOwner + 1);
+                    if (m0.owner == m1.owner)
+                    {
+                        snprintf(
+                            placeMessage,
+                            sizeof(placeMessage) - 1,
+                            "P%d colocou 2 monstros e levou o ponto",
+                            winnerOwner + 1
+                        );
+                    }
+                    else if (m0.power > m1.power)
+                    {
+                        snprintf(
+                            placeMessage,
+                            sizeof(placeMessage) - 1,
+                            "P%d venceu a batalha",
+                            m0.owner + 1
+                        );
+                    }
+                    else if (m1.power > m0.power)
+                    {
+                        snprintf(
+                            placeMessage,
+                            sizeof(placeMessage) - 1,
+                            "P%d venceu a batalha",
+                            m1.owner + 1
+                        );
+                    }
+                    else
+                    {
+                        snprintf(
+                            placeMessage,
+                            sizeof(placeMessage) - 1,
+                            "Empate: carta decidiu"
+                        );
                     }
 
                     placedFeedbackTimer = 60;
@@ -103,107 +239,207 @@ int main(void)
 
                 battleResolveGX = -1;
                 battleResolveGZ = -1;
+
                 battleMessage[0] = '\0';
             }
         }
 
-        // ================= MOVIMENTO =================
+        // =========================
+        // MOVIMENTO
+        // =========================
+
         if (IsKeyPressed(KEY_D)) playerGX++;
         if (IsKeyPressed(KEY_A)) playerGX--;
         if (IsKeyPressed(KEY_W)) playerGZ--;
         if (IsKeyPressed(KEY_S)) playerGZ++;
 
-        // Marcar tile
-        if (IsKeyPressed(KEY_ENTER)){
+        // limites
+        if (playerGX < 0) playerGX = 0;
+        if (playerGZ < 0) playerGZ = 0;
+
+        if (playerGX >= gridSizeX)
+            playerGX = gridSizeX - 1;
+
+        if (playerGZ >= gridSizeZ)
+            playerGZ = gridSizeZ - 1;
+
+        // =========================
+        // MARCAR TILE
+        // =========================
+
+        if (IsKeyPressed(KEY_ENTER))
+        {
             marcadoGX = playerGX;
             marcadoGZ = playerGZ;
         }
 
-        // Desmarcar tile (ESC)
-        if (IsKeyPressed(KEY_ESCAPE)) {
+        if (IsKeyPressed(KEY_ESCAPE))
+        {
             marcadoGX = -1;
             marcadoGZ = -1;
         }
 
-        // Atualiza o temporizador de feedback
-        if (placedFeedbackTimer > 0) placedFeedbackTimer--;
+        // =========================
+        // FEEDBACK TIMER
+        // =========================
 
-        // Escolhe ação apenas se o tile estiver marcado
-        if (battleResolveTimer == 0 && marcadoGX != -1 && marcadoGZ != -1) {
+        if (placedFeedbackTimer > 0)
+            placedFeedbackTimer--;
+
+        // =========================
+        // AÇÕES
+        // =========================
+
+        if (battleResolveTimer == 0 &&
+            marcadoGX != -1 &&
+            marcadoGZ != -1)
+        {
             GetPlayerHands(playerCards, playerMonsters);
-            bool canPlaceMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
 
-            // C para colocar carta
-            if (IsKeyPressed(KEY_C)) {
-                if (!playerCards[activePlayer][0] && !playerCards[activePlayer][1] && !playerCards[activePlayer][2]) {
-                    strncpy(placeMessage, "Sem cartas na mao", sizeof(placeMessage)-1);
-                } else {
-                    // Procura a primeira carta disponível
-                    for (int s = 0; s < 3; s++) {
-                        if (playerCards[activePlayer][s]) {
-                            if (PlaceCardAt(marcadoGX, marcadoGZ, activePlayer, s)) {
-                                RemovePlayerCardFromHand(activePlayer, s);
-                                snprintf(placeMessage, sizeof(placeMessage)-1, "Colocado carta no tile (%d,%d)", marcadoGX, marcadoGZ);
-                                placedFeedbackTimer = 60; // 1 segundo a 60 FPS
-                                marcadoGX = marcadoGZ = -1;
-                                activePlayer ^= 1; // passa a vez
-                            } else {
-                                if (TileHasCard(marcadoGX, marcadoGZ)) {
-                                    strncpy(placeMessage, "Tile ja tem carta", sizeof(placeMessage)-1);
-                                } else if (CountCardsOnMap() >= 4) {
-                                    strncpy(placeMessage, "Limite de 4 cartas no tabuleiro atingido", sizeof(placeMessage)-1);
-                                } else {
-                                    strncpy(placeMessage, "Carta deve encostar em outra carta (lado/diagonal)", sizeof(placeMessage)-1);
-                                }
-                            }
-                            break;
+            bool canPlaceMonster =
+                (CountPlayerCardsOnMap(activePlayer) > 0);
+
+            // =====================
+            // COLOCAR CARTA
+            // =====================
+
+            if (IsKeyPressed(KEY_C))
+            {
+                for (int s = 0; s < 3; s++)
+                {
+                    if (playerCards[activePlayer][s])
+                    {
+                        if (PlaceCardAt(
+                                marcadoGX,
+                                marcadoGZ,
+                                activePlayer,
+                                s))
+                        {
+                            RemovePlayerCardFromHand(activePlayer, s);
+
+                            snprintf(
+                                placeMessage,
+                                sizeof(placeMessage)-1,
+                                "Carta colocada"
+                            );
+
+                            placedFeedbackTimer = 60;
+
+                            marcadoGX = -1;
+                            marcadoGZ = -1;
+
+                            activePlayer ^= 1;
                         }
+
+                        break;
                     }
                 }
             }
 
-            // M para colocar monstro
-            if (IsKeyPressed(KEY_M)) {
-                if (!canPlaceMonster) {
-                    strncpy(placeMessage, "Obrigatorio colocar carta primeiro!", sizeof(placeMessage)-1);
-                } else if (!playerMonsters[activePlayer][0] && !playerMonsters[activePlayer][1] && !playerMonsters[activePlayer][2]) {
-                    strncpy(placeMessage, "Sem monstros na mao", sizeof(placeMessage)-1);
-                } else {
-                    // Procura o primeiro monstro disponível
-                    for (int s = 0; s < 3; s++) {
-                        if (playerMonsters[activePlayer][s]) {
-                            if (PlaceMonsterAt(marcadoGX, marcadoGZ, activePlayer, s)) {
-                                RemovePlayerMonsterFromHand(activePlayer, s);
-                                int monsterCount = GetTileMonsterCount(marcadoGX, marcadoGZ);
-                                if (monsterCount < 2) {
-                                    snprintf(placeMessage, sizeof(placeMessage)-1, "Monstro colocado no tile (%d,%d). Falta mais 1.", marcadoGX, marcadoGZ);
+            // =====================
+            // COLOCAR MONSTRO
+            // =====================
+
+            if (IsKeyPressed(KEY_M))
+            {
+                if (!canPlaceMonster)
+                {
+                    strncpy(
+                        placeMessage,
+                        "Coloque uma carta primeiro!",
+                        sizeof(placeMessage)-1
+                    );
+                }
+                else
+                {
+                    for (int s = 0; s < 3; s++)
+                    {
+                        if (playerMonsters[activePlayer][s])
+                        {
+                            if (PlaceMonsterAt(
+                                    marcadoGX,
+                                    marcadoGZ,
+                                    activePlayer,
+                                    s))
+                            {
+                                // =========================
+                                // random
+                                // =========================
+
+                                int randX = GetRandomValue(-10, 10);
+                                int randZ = GetRandomValue(-10, 10);
+
+                                // posição do tile
+                                float targetX, targetZ;
+
+                                GridToWorld(
+                                    marcadoGX,
+                                    marcadoGZ,
+                                    tileWidth,
+                                    tileDepth,
+                                    offsetX,
+                                    offsetZ,
+                                    &targetX,
+                                    &targetZ
+                                );
+
+                                // animação
+                                monsterAnim.position = (Vector3){
+                                    targetX + randX,
+                                    4.0f,
+                                    targetZ + randZ
+                                };
+
+                                monsterAnim.target = (Vector3){
+                                    targetX,
+                                    0.7f,
+                                    targetZ
+                                };
+
+                                monsterAnim.rotation = 0.0f;
+                                monsterAnim.active = true;
+
+                                RemovePlayerMonsterFromHand(
+                                    activePlayer,
+                                    s
+                                );
+
+                                int monsterCount =
+                                    GetTileMonsterCount(
+                                        marcadoGX,
+                                        marcadoGZ
+                                    );
+
+                                if (monsterCount < 2)
+                                {
+                                    snprintf(
+                                        placeMessage,
+                                        sizeof(placeMessage)-1,
+                                        "Monstro colocado"
+                                    );
+
                                     placedFeedbackTimer = 60;
-                                } else {
-                                    TileEntity battleTile = GetTileAt(marcadoGX, marcadoGZ);
-                                    MonsterPlacement m0 = battleTile.monsters[0];
-                                    MonsterPlacement m1 = battleTile.monsters[1];
+                                }
+                                else
+                                {
+                                    snprintf(
+                                        battleMessage,
+                                        sizeof(battleMessage)-1,
+                                        "Batalha!"
+                                    );
 
-                                    if (m0.owner == m1.owner) {
-                                        snprintf(battleMessage, sizeof(battleMessage)-1, "Batalha: 2 monstros do P%d", m0.owner + 1);
-                                    } else if (m0.power > m1.power) {
-                                        snprintf(battleMessage, sizeof(battleMessage)-1, "Batalha: P%d %d x %d P%d", m0.owner + 1, m0.power, m1.power, m1.owner + 1);
-                                    } else if (m1.power > m0.power) {
-                                        snprintf(battleMessage, sizeof(battleMessage)-1, "Batalha: P%d %d x %d P%d", m0.owner + 1, m0.power, m1.power, m1.owner + 1);
-                                    } else {
-                                        snprintf(battleMessage, sizeof(battleMessage)-1, "Batalha: empate, carta decide");
-                                    }
-
-                                    snprintf(placeMessage, sizeof(placeMessage)-1, "Batalha em andamento...");
                                     battleResolveGX = marcadoGX;
                                     battleResolveGZ = marcadoGZ;
+
                                     battleResolveTimer = 60;
                                 }
 
-                                marcadoGX = marcadoGZ = -1;
-                                activePlayer ^= 1; // passa a vez
-                            } else {
-                                strncpy(placeMessage, "Tile sem carta ou ja tem monstro", sizeof(placeMessage)-1);
+                                marcadoGX = -1;
+                                marcadoGZ = -1;
+
+                                activePlayer ^= 1;
                             }
+
                             break;
                         }
                     }
@@ -211,34 +447,61 @@ int main(void)
             }
         }
 
-        // Troca o jogador manualmente (apenas para teste)
-        if (IsKeyPressed(KEY_T)) activePlayer ^= 1;
+        // =========================
+        // TROCA PLAYER
+        // =========================
 
-        // Limites do mapa
-        if (playerGX < 0) playerGX = 0;
-        if (playerGZ < 0) playerGZ = 0;
-        if (playerGX >= gridSizeX) playerGX = gridSizeX - 1;
-        if (playerGZ >= gridSizeZ) playerGZ = gridSizeZ - 1;
+        if (IsKeyPressed(KEY_T))
+            activePlayer ^= 1;
 
-        // Converte grid → mundo (usa função do módulo)
+        // =========================
+        // GRID -> MUNDO
+        // =========================
+
         float playerX, playerZ;
-        GridToWorld(playerGX, playerGZ, tileWidth, tileDepth, offsetX, offsetZ, &playerX, &playerZ);
 
-        float markX = 0.0f, markZ = 0.0f;
-        if (marcadoGX != -1 && marcadoGZ != -1) GridToWorld(marcadoGX, marcadoGZ, tileWidth, tileDepth, offsetX, offsetZ, &markX, &markZ);
-        // ================= DESENHO =================
+        GridToWorld(
+            playerGX,
+            playerGZ,
+            tileWidth,
+            tileDepth,
+            offsetX,
+            offsetZ,
+            &playerX,
+            &playerZ
+        );
+
+        // =========================
+        // DESENHO
+        // =========================
+
         BeginDrawing();
+
         ClearBackground(RAYWHITE);
-        // teste 2D
-        //DrawTexture(playerTexture, 100, 100, WHITE);
 
         BeginMode3D(camera);
-        DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ);
 
-        // posição da carta
-        Vector3 cardPos = {playerX, 0.5f, playerZ};
+        DrawBattleMap(
+            gridSizeX,
+            gridSizeZ,
+            tileWidth,
+            tileDepth,
+            offsetX,
+            offsetZ,
+            marcadoGX,
+            marcadoGZ
+        );
 
-        // desenha a carta deitada
+        // =========================
+        // PLAYER
+        // =========================
+
+        Vector3 cardPos = {
+            playerX,
+            0.5f,
+            playerZ
+        };
+
         DrawModel(
             cardModel,
             cardPos,
@@ -246,134 +509,307 @@ int main(void)
             WHITE
         );
 
-        // Desenha as entidades colocadas no estado do jogo (cartas e monstros no mapa)
-        for (int gz = 0; gz < GetGridSizeZ(); gz++) {
-            for (int gx = 0; gx < GetGridSizeX(); gx++) {
+        // =========================
+        // DESENHAR MAPA
+        // =========================
+
+        for (int gz = 0; gz < GetGridSizeZ(); gz++)
+        {
+            for (int gx = 0; gx < GetGridSizeX(); gx++)
+            {
                 TileEntity te = GetTileAt(gx, gz);
-                
-                // Desenha a carta, se existir
-                if (te.card.owner != -1) {
-                    float ex, ez;
-                    GridToWorld(gx, gz, tileWidth, tileDepth, offsetX, offsetZ, &ex, &ez);
-                    Color cardCol = te.card.owner == 0 ? ORANGE : RED;
-                    Vector3 cardPos = {ex, 0.1f, ez};
-                    // Carta grande e bem visível no chão
-                    DrawCube(cardPos, 1.8f, 0.05f, 2.4f, cardCol);
-                    DrawCubeWires(cardPos, 1.8f, 0.05f, 2.4f, BLACK);
-                }
-                
-                // Desenha o(s) monstro(s), se existir(em), acima da carta
-                if (te.monsterCount > 0) {
-                    float ex, ez;
-                    GridToWorld(
-                        gx,
-                        gz,
-                        tileWidth,
-                        tileDepth,
-                        offsetX,
-                        offsetZ,
-                        &ex,
-                        &ez
+
+                float ex, ez;
+
+                GridToWorld(
+                    gx,
+                    gz,
+                    tileWidth,
+                    tileDepth,
+                    offsetX,
+                    offsetZ,
+                    &ex,
+                    &ez
+                );
+
+                // =====================
+                // CARTA
+                // =====================
+
+                if (te.card.owner != -1)
+                {
+                    Color cardCol =
+                        te.card.owner == 0
+                        ? ORANGE
+                        : RED;
+
+                    Vector3 tileCardPos = {
+                        ex,
+                        0.1f,
+                        ez
+                    };
+
+                    DrawCube(
+                        tileCardPos,
+                        1.8f,
+                        0.05f,
+                        2.4f,
+                        cardCol
                     );
-                    for (int m = 0; m < te.monsterCount; m++) {
-                        
-                        
+
+                    DrawCubeWires(
+                        tileCardPos,
+                        1.8f,
+                        0.05f,
+                        2.4f,
+                        BLACK
+                    );
+                }
+
+                // =====================
+                // MONSTROS
+                // =====================
+
+                if (te.monsterCount > 0)
+                {
+                    for (int m = 0; m < te.monsterCount; m++)
+                    {
                         float xOffset =
                             (te.monsterCount == 2)
-                            ? ((m == 0) ? -0.22f : 0.22f)
+                            ? ((m == 0)
+                                ? -0.22f
+                                : 0.22f)
                             : 0.0f;
 
                         Vector3 monsterPos = {
                             ex + xOffset,
                             0.9f + (0.08f * m),
                             ez
-
-
-                        
                         };
 
+                        // NÃO desenha o estático
+                        // enquanto animação acontece
 
-                    DrawBillboard(
-                            camera,
-                            monsterTexture,
-                            monsterPos,
-                            1.2f,
-                            WHITE
-                        );
+                        if (!monsterAnim.active)
+                        {
+                            DrawBillboard(
+                                camera,
+                                monsterTexture,
+                                monsterPos,
+                                1.2f,
+                                WHITE
+                            );
+                        }
                     }
                 }
             }
         }
 
+        // =========================
+        // MONSTRO ANIMADO
+        // =========================
+
+        if (monsterAnim.active)
+        {
+            Rectangle source = {
+                0,
+                0,
+                (float)monsterTexture.width,
+                (float)monsterTexture.height
+            };
+
+            Vector2 origin = {
+                0.6f,
+                0.6f
+            };
+
+            DrawBillboardPro(
+                camera,
+                monsterTexture,
+                source,
+                monsterAnim.position,
+                (Vector3){0.0f, 1.0f, 0.0f},
+                (Vector2){1.2f, 1.2f},
+                origin,
+                monsterAnim.rotation,
+                WHITE
+            );
+        }
+
         EndMode3D();
 
-        // HUD: ícones e barras de pontos (máximo 3)
+        // =========================
+        // HUD
+        // =========================
+
         int hudY = 10;
 
-        // Jogador 1 (esquerda)
-        if (iconP1.id != 0) DrawTexture(iconP1, 10, hudY, WHITE);
-        else DrawRectangle(10, hudY, 48, 48, MAROON);
-        DrawText("P1", 10 + 48 + 6, hudY + 6, 18, BLACK);
-        // Barras de pontos do P1
-        for (int i = 0; i < 3; i++) {
-            int bx = 10 + 48 + 6 + 40 + i * 22;
-            int by = hudY + 6;
-            DrawRectangleLines(bx, by, 18, 18, BLACK);
-            if (i < player1Score) DrawRectangle(bx+1, by+1, 16, 16, GOLD);
+        // P1
+
+        DrawTexture(iconP1, 10, hudY, WHITE);
+
+        DrawText(
+            "P1",
+            64,
+            hudY + 6,
+            18,
+            BLACK
+        );
+
+        for (int i = 0; i < 3; i++)
+        {
+            int bx = 104 + i * 22;
+
+            DrawRectangleLines(
+                bx,
+                hudY + 6,
+                18,
+                18,
+                BLACK
+            );
+
+            if (i < player1Score)
+            {
+                DrawRectangle(
+                    bx + 1,
+                    hudY + 7,
+                    16,
+                    16,
+                    GOLD
+                );
+            }
         }
 
-        // Jogador 2 (direita) - layout espelhado do P1
-        int p2x = screenWidth - 10 - 48;
-        int p2TextX = p2x - 36; // o texto fica à esquerda do ícone
-        if (iconP2.id != 0) DrawTexture(iconP2, p2x, hudY, WHITE);
-        else DrawRectangle(p2x, hudY, 48, 48, DARKBLUE);
-        DrawText("P2", p2TextX, hudY + 6, 18, BLACK);
-        // Barras de pontos do P2 (à esquerda do texto, espelhadas)
-        for (int i = 0; i < 3; i++) {
-            int bx = p2TextX - 40 - i * 22; // avança para a esquerda
-            int by = hudY + 6;
-            DrawRectangleLines(bx, by, 18, 18, BLACK);
-            if (i < player2Score) DrawRectangle(bx+1, by+1, 16, 16, GOLD);
+        // P2
+
+        int p2x = screenWidth - 58;
+
+        DrawTexture(iconP2, p2x, hudY, WHITE);
+
+        DrawText(
+            "P2",
+            p2x - 36,
+            hudY + 6,
+            18,
+            BLACK
+        );
+
+        // =========================
+        // UI
+        // =========================
+
+        GetPlayerHands(
+            playerCards,
+            playerMonsters
+        );
+
+        DrawBottomMenu(
+            screenWidth,
+            screenHeight,
+            activePlayer,
+            playerCards,
+            playerMonsters
+        );
+
+        if (marcadoGX != -1 &&
+            marcadoGZ != -1)
+        {
+            bool canPickMonster =
+                (CountPlayerCardsOnMap(activePlayer) > 0);
+
+            DrawSelectionMenu(
+                screenWidth,
+                screenHeight,
+                canPickMonster,
+                activePlayer
+            );
         }
 
-        DrawText("WASD para mover (1 tile por vez)", 10, screenHeight - 30, 20, BLACK);
+        // =========================
+        // FEEDBACKS
+        // =========================
 
-        // Desenha o menu inferior com os slots disponíveis
-        GetPlayerHands(playerCards, playerMonsters);
-        DrawBottomMenu(screenWidth, screenHeight, activePlayer, playerCards, playerMonsters);
+        if (battleResolveTimer > 0 &&
+            battleMessage[0] != '\0')
+        {
+            DrawRectangle(
+                0,
+                0,
+                screenWidth,
+                screenHeight,
+                (Color){0,0,0,35}
+            );
 
-        // Desenha o menu de seleção se o tile estiver marcado
-        if (marcadoGX != -1 && marcadoGZ != -1) {
-            bool canPickMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
-            DrawSelectionMenu(screenWidth, screenHeight, canPickMonster, activePlayer);
+            DrawText(
+                battleMessage,
+                screenWidth/2 -
+                MeasureText(battleMessage, 20)/2,
+                40,
+                20,
+                YELLOW
+            );
         }
 
-        // Desenha o feedback visual da colocação
-        if (battleResolveTimer > 0 && battleMessage[0] != '\0') {
-            DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0, 0, 0, 35});
-            DrawText(battleMessage, screenWidth/2 - MeasureText(battleMessage, 20)/2, 40, 20, YELLOW);
+        if (placedFeedbackTimer > 0)
+        {
+            float alpha =
+                (placedFeedbackTimer / 60.0f);
+
+            DrawRectangle(
+                0,
+                0,
+                screenWidth,
+                screenHeight,
+                (Color){
+                    0,
+                    0,
+                    0,
+                    (unsigned char)(50 * alpha)
+                }
+            );
         }
 
-        if (placedFeedbackTimer > 0) {
-            float alpha = (placedFeedbackTimer / 60.0f);
-            DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0, 0, 0, (unsigned char)(50 * alpha)});
-            int feedbackSize = 100 + (int)(50 * (1.0f - alpha));
-            DrawRectangleLines(screenWidth/2 - feedbackSize/2, screenHeight/2 - feedbackSize/2, feedbackSize, feedbackSize, (Color){0, 255, 0, (unsigned char)(255 * alpha)});
-        }
+        // =========================
+        // TEXTO
+        // =========================
 
-        // Instruções
-        DrawText("ENTER marca tile, C coloca carta, M coloca monstro, ESC desmarca, T troca jogador", 10, screenHeight - 52, 14, DARKGRAY);
-        if (placeMessage[0] != '\0') DrawText(placeMessage, 10, screenHeight - 72, 14, RED);
+        DrawText(
+            "ENTER marca tile | C carta | M monstro",
+            10,
+            screenHeight - 52,
+            14,
+            DARKGRAY
+        );
+
+        if (placeMessage[0] != '\0')
+        {
+            DrawText(
+                placeMessage,
+                10,
+                screenHeight - 72,
+                14,
+                RED
+            );
+        }
 
         EndDrawing();
     }
-    
+
+    // =========================
+    // FINALIZAÇÃO
+    // =========================
+
     UnloadModel(cardModel);
+
     UnloadTexture(playerTexture);
     UnloadTexture(monsterTexture);
+
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
+
     FreeGameState();
+
     CloseWindow();
+
     return 0;
 }
