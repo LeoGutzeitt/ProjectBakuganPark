@@ -11,9 +11,8 @@ int main(void)
     const int screenHeight = 700;
 
     InitWindow(screenWidth, screenHeight, "Grid Movement");
-
     Camera3D camera = { 0 };
-    camera.position = (Vector3){ 0.0f, 10.0f, 10.0f };
+    camera.position = (Vector3){ 0.0f, 5.0f, 8.0f };
     camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
     camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
     camera.fovy = 45.0f;
@@ -68,6 +67,7 @@ int main(void)
     int battleResolveGZ = -1;
 
     Texture2D playerTexture = LoadTexture("img/carta-base.png");
+    Texture2D monsterTexture = LoadTexture("img/monster.png");
     Mesh cardMesh = GenMeshPlane(2.0f, 3.0f, 1, 1);
 
     Model cardModel = LoadModelFromMesh(cardMesh);
@@ -230,7 +230,7 @@ int main(void)
         BeginDrawing();
         ClearBackground(RAYWHITE);
         // teste 2D
-        DrawTexture(playerTexture, 100, 100, WHITE);
+        //DrawTexture(playerTexture, 100, 100, WHITE);
 
         BeginMode3D(camera);
         DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ);
@@ -265,14 +265,41 @@ int main(void)
                 // Desenha o(s) monstro(s), se existir(em), acima da carta
                 if (te.monsterCount > 0) {
                     float ex, ez;
-                    GridToWorld(gx, gz, tileWidth, tileDepth, offsetX, offsetZ, &ex, &ez);
+                    GridToWorld(
+                        gx,
+                        gz,
+                        tileWidth,
+                        tileDepth,
+                        offsetX,
+                        offsetZ,
+                        &ex,
+                        &ez
+                    );
                     for (int m = 0; m < te.monsterCount; m++) {
-                        MonsterPlacement mp = te.monsters[m];
-                        Color monsterCol = mp.owner == 0 ? YELLOW : MAGENTA;
-                        float xOffset = (te.monsterCount == 2) ? ((m == 0) ? -0.22f : 0.22f) : 0.0f;
-                        Vector3 monsterPos = {ex + xOffset, 0.6f + (0.08f * m), ez};
-                        DrawSphere(monsterPos, 0.5f, monsterCol);
-                        DrawSphereWires(monsterPos, 0.5f, 12, 12, BLACK);
+                        
+                        
+                        float xOffset =
+                            (te.monsterCount == 2)
+                            ? ((m == 0) ? -0.22f : 0.22f)
+                            : 0.0f;
+
+                        Vector3 monsterPos = {
+                            ex + xOffset,
+                            0.9f + (0.08f * m),
+                            ez
+
+
+                        
+                        };
+
+
+                    DrawBillboard(
+                            camera,
+                            monsterTexture,
+                            monsterPos,
+                            1.2f,
+                            WHITE
+                        );
                     }
                 }
             }
@@ -343,6 +370,7 @@ int main(void)
     
     UnloadModel(cardModel);
     UnloadTexture(playerTexture);
+    UnloadTexture(monsterTexture);
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
     FreeGameState();
