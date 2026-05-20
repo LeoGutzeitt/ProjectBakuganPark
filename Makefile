@@ -13,7 +13,7 @@ $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS) $(LDFLAGS)
 
 run: $(TARGET)
-	./$(TARGET)
+	cd $(dir $(TARGET)) && ./$(notdir $(TARGET))
 
 clean:
 	rm -f $(TARGET)
