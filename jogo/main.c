@@ -287,10 +287,10 @@ int main(void)
         // MOVIMENTO
         // =========================
 
-        if (IsKeyPressed(KEY_D)) playerGX++;
-        if (IsKeyPressed(KEY_A)) playerGX--;
-        if (IsKeyPressed(KEY_W)) playerGZ--;
-        if (IsKeyPressed(KEY_S)) playerGZ++;
+        if (IsKeyPressed(KEY_S)) playerGX++;
+        if (IsKeyPressed(KEY_W)) playerGX--;
+        if (IsKeyPressed(KEY_D)) playerGZ--;
+        if (IsKeyPressed(KEY_A)) playerGZ++;
 
         // limites
         if (playerGX < 0) playerGX = 0;
