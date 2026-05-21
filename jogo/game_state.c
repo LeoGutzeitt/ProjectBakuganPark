@@ -156,6 +156,30 @@ bool ResolveTileBattle(int gx, int gz, int *outWinnerOwner)
     return true;
 }
 
+bool PeekTileBattleWinner(int gx, int gz, int *outWinnerOwner)
+{
+    TileEntity *tile = GetTilePtr(gx, gz);
+    if (!tile) return false;
+    if (tile->monsterCount < 2) return false;
+
+    int winnerOwner = tile->card.owner;
+    MonsterPlacement m0 = tile->monsters[0];
+    MonsterPlacement m1 = tile->monsters[1];
+
+    if (m0.owner == m1.owner) {
+        winnerOwner = m0.owner;
+    } else if (m0.power > m1.power) {
+        winnerOwner = m0.owner;
+    } else if (m1.power > m0.power) {
+        winnerOwner = m1.owner;
+    } else {
+        winnerOwner = tile->card.owner;
+    }
+
+    if (outWinnerOwner) *outWinnerOwner = winnerOwner;
+    return true;
+}
+
 int CountPlayerCardsOnMap(int player)
 {
     int c = 0;

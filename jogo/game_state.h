@@ -31,6 +31,10 @@ bool PlaceMonsterAt(int gx, int gz, int owner, int slot);
 // Resolve a batalha quando um tile tem 2 monstros.
 // Retorna true quando o tile foi resolvido e limpo.
 bool ResolveTileBattle(int gx, int gz, int *outWinnerOwner);
+// Determina o vencedor de uma batalha sem limpar o tile (útil para animações antes
+// de confirmar/limpar). Retorna true se havia batalha e escreve o dono vencedor em
+// outWinnerOwner (se não for NULL).
+bool PeekTileBattleWinner(int gx, int gz, int *outWinnerOwner);
 void ClearTile(int gx, int gz);
 
 // Consultas

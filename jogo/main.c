@@ -98,6 +98,11 @@ int main(void)
     int battleResolveTimer = 0;
     int battleResolveGX = -1;
     int battleResolveGZ = -1;
+    // batalha requer ativação pelos donos das cartas
+    bool battleAwaitingActivation = false;
+    bool battleActivatedByPlayer[2] = { false, false };
+    const int BATTLE_COUNTDOWN_FRAMES = 180; // duração da batalha após ativações
+    int battleWinnerOwner = -1;
 
     // =========================
     // TEXTURAS
@@ -190,20 +195,20 @@ int main(void)
         {
             transformTimer++;
 
-            // após 30 frames -> estágio 1
-            if (transformTimer > 30)
+            // após 60 frames -> estágio 1 (mais lento)
+            if (transformTimer > 60)
             {
                 transformStage = 1;
             }
 
-            // após 60 frames -> estágio 2
-            if (transformTimer > 60)
+            // após 120 frames -> estágio 2 (mais lento)
+            if (transformTimer > 120)
             {
                 transformStage = 2;
             }
 
             // termina animação
-            if (transformTimer > 90)
+            if (transformTimer > 180)
             {
                 transforming = false;
             }
@@ -331,7 +336,8 @@ int main(void)
 
         if (battleResolveTimer == 0 &&
             marcadoGX != -1 &&
-            marcadoGZ != -1)
+            marcadoGZ != -1 &&
+            !battleAwaitingActivation)
         {
             GetPlayerHands(playerCards, playerMonsters);
 
@@ -470,7 +476,12 @@ int main(void)
                                     battleResolveGX = marcadoGX;
                                     battleResolveGZ = marcadoGZ;
 
-                                    battleResolveTimer = 60;
+                                    // enter activation phase: owners must press to activate their card
+                                    battleAwaitingActivation = true;
+                                    battleActivatedByPlayer[0] = false;
+                                    battleActivatedByPlayer[1] = false;
+                                    battleWinnerOwner = -1;
+                                    PeekTileBattleWinner(battleResolveGX, battleResolveGZ, &battleWinnerOwner);
                                 }
 
                                 marcadoGX = -1;
@@ -483,6 +494,60 @@ int main(void)
                         }
                     }
                 }
+            }
+        }
+
+        // =========================
+        // ATIVAÇÃO DE BATALHA (quando entrada de confirmação é necessária)
+        // Player 0 pressiona F, Player 1 pressiona L
+        if (battleAwaitingActivation)
+        {
+            // allow owner(s) to activate their card(s)
+            if (IsKeyPressed(KEY_F))
+            {
+                // check if player 0 has a monster in that tile
+                TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
+                for (int m = 0; m < bt.monsterCount; m++)
+                {
+                    if (bt.monsters[m].owner == 0) { battleActivatedByPlayer[0] = true; break; }
+                }
+            }
+
+            if (IsKeyPressed(KEY_L))
+            {
+                TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
+                for (int m = 0; m < bt.monsterCount; m++)
+                {
+                    if (bt.monsters[m].owner == 1) { battleActivatedByPlayer[1] = true; break; }
+                }
+            }
+
+            // determine if activation requirement satisfied:
+            TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
+            bool needP0 = false, needP1 = false;
+            if (bt.monsterCount >= 2)
+            {
+                needP0 = (bt.monsters[0].owner == 0) || (bt.monsters[1].owner == 0);
+                needP1 = (bt.monsters[0].owner == 1) || (bt.monsters[1].owner == 1);
+            }
+            else if (bt.monsterCount == 1)
+            {
+                // single monster: require its owner only
+                needP0 = (bt.monsters[0].owner == 0);
+                needP1 = (bt.monsters[0].owner == 1);
+            }
+
+            bool ok = true;
+            if (needP0 && !battleActivatedByPlayer[0]) ok = false;
+            if (needP1 && !battleActivatedByPlayer[1]) ok = false;
+
+            if (ok)
+            {
+                // both (or single) activated -> start battle countdown
+                battleAwaitingActivation = false;
+                battleResolveTimer = BATTLE_COUNTDOWN_FRAMES;
+                // small message
+                snprintf(battleMessage, sizeof(battleMessage)-1, "BATALHA: ativado!");
             }
         }
 
@@ -650,11 +715,38 @@ int main(void)
 
                         if (!monsterAnim.active)
                         {
-                            DrawBillboard(
+                            float monsterScale = 0.8f;
+                            float displayXOffset = xOffset;
+                            float faceRotDeg = 0.0f;
+
+                            if (battleResolveTimer > 0 && gx == battleResolveGX && gz == battleResolveGZ)
+                            {
+                                int owner = te.monsters[m].owner;
+                                displayXOffset = (owner == 0) ? -0.35f : 0.35f;
+                                faceRotDeg = (owner == 0) ? 0.0f : 180.0f;
+
+                                if (owner == battleWinnerOwner && battleResolveTimer <= 30)
+                                {
+                                    float shakePhase = (float)(30 - battleResolveTimer);
+                                    float shake = sinf(shakePhase * 10.0f) * 0.12f * (shakePhase / 30.0f);
+                                    monsterPos.x += shake;
+                                }
+                            }
+
+                            monsterPos.x = ex + displayXOffset;
+
+                            Rectangle source = { 0, 0, (float)currentTexture.width, (float)currentTexture.height };
+                            Vector2 origin = { 0.5f, 0.5f };
+
+                            DrawBillboardPro(
                                 camera,
                                 currentTexture,
+                                source,
                                 monsterPos,
-                                1.2f,
+                                (Vector3){0.0f, 1.0f, 0.0f},
+                                (Vector2){ monsterScale, monsterScale },
+                                origin,
+                                faceRotDeg,
                                 WHITE
                             );
                         }
@@ -768,6 +860,36 @@ int main(void)
             playerCards,
             playerMonsters
         );
+
+        // Activation prompts during battle awaiting activation
+        if (battleAwaitingActivation && battleResolveGX != -1)
+        {
+            TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
+            int cy = screenHeight/2 - 40;
+            int cx = screenWidth/2;
+            // instructions
+            DrawText("Ativar carta para iniciar batalha:", cx - 180, cy - 30, 18, BLACK);
+
+            // Player 0 prompt
+            bool p0present = false;
+            bool p1present = false;
+            for (int m = 0; m < bt.monsterCount; m++)
+            {
+                if (bt.monsters[m].owner == 0) p0present = true;
+                if (bt.monsters[m].owner == 1) p1present = true;
+            }
+
+            if (p0present)
+            {
+                const char *s0 = battleActivatedByPlayer[0] ? "P1 ativado (F)" : "P1: pressione F";
+                DrawText(s0, cx - 160, cy, 16, battleActivatedByPlayer[0] ? ORANGE : DARKGRAY);
+            }
+            if (p1present)
+            {
+                const char *s1 = battleActivatedByPlayer[1] ? "P2 ativado (L)" : "P2: pressione L";
+                DrawText(s1, cx + 20, cy, 16, battleActivatedByPlayer[1] ? RED : DARKGRAY);
+            }
+        }
 
         if (marcadoGX != -1 &&
             marcadoGZ != -1)
