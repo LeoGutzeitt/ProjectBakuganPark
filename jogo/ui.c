@@ -75,3 +75,77 @@ void DrawSelectionMenu(int screenWidth, int screenHeight, bool canPickMonster, i
         DrawText("Precisa de carta no mapa primeiro", x + 18, y + 118, 12, RED);
     }
 }
+
+void DrawScoreBoard(int screenWidth, int hudY, int player1Score, int player2Score, Texture2D iconP1, Texture2D iconP2)
+{
+    DrawTexture(iconP1, 10, hudY, WHITE);
+    DrawText("P1", 64, hudY + 6, 18, BLACK);
+
+    for (int i = 0; i < 3; i++) {
+        int bx = 104 + i * 22;
+        DrawRectangleLines(bx, hudY + 6, 18, 18, BLACK);
+        if (i < player1Score) {
+            DrawRectangle(bx + 1, hudY + 7, 16, 16, GOLD);
+        }
+    }
+
+    int p2x = screenWidth - 58;
+    DrawTexture(iconP2, p2x, hudY, WHITE);
+    DrawText("P2", p2x - 36, hudY + 6, 18, BLACK);
+
+    for (int i = 0; i < 3; i++) {
+        int bx = p2x - 120 + i * 22;
+        DrawRectangleLines(bx, hudY + 6, 18, 18, BLACK);
+        if (i < player2Score) {
+            DrawRectangle(bx + 1, hudY + 7, 16, 16, GOLD);
+        }
+    }
+}
+
+void DrawBattleActivationPrompt(int screenWidth, int screenHeight, bool p0Present, bool p1Present, bool p0Activated, bool p1Activated)
+{
+    if (!p0Present && !p1Present) return;
+
+    int cy = screenHeight / 2 - 40;
+    int cx = screenWidth / 2;
+
+    DrawText("Ativar carta para iniciar batalha:", cx - 180, cy - 30, 18, BLACK);
+
+    if (p0Present) {
+        const char *label = p0Activated ? "P1 ativado (F)" : "P1: pressione F";
+        DrawText(label, cx - 160, cy, 16, p0Activated ? ORANGE : DARKGRAY);
+    }
+
+    if (p1Present) {
+        const char *label = p1Activated ? "P2 ativado (L)" : "P2: pressione L";
+        DrawText(label, cx + 20, cy, 16, p1Activated ? RED : DARKGRAY);
+    }
+}
+
+void DrawGameHints(int screenWidth, int screenHeight, const char *placeMessage)
+{
+    DrawText("ENTER marca tile | C carta | M monstro", 10, screenHeight - 52, 14, DARKGRAY);
+
+    if (placeMessage && placeMessage[0] != '\0') {
+        DrawText(placeMessage, 10, screenHeight - 72, 14, RED);
+    }
+}
+
+void DrawBattleFeedbackOverlay(int screenWidth, int screenHeight, const char *battleMessage, int battleResolveTimer, int placedFeedbackTimer)
+{
+    if (battleResolveTimer > 0 && battleMessage && battleMessage[0] != '\0') {
+        DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0, 0, 0, 35});
+        DrawText(
+            battleMessage,
+            screenWidth / 2 - MeasureText(battleMessage, 20) / 2,
+            40,
+            20,
+            YELLOW
+        );
+    }
+
+    if (placedFeedbackTimer > 0) {
+        float alpha = placedFeedbackTimer / 60.0f;
+        DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0, 0, 0, (unsigned char)(50 * alpha)});
+    }
+}

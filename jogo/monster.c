@@ -1,4 +1,89 @@
 #include "monster.h"
+#include <math.h>
+
+MonsterAnimation MonsterAnimationCreate(void)
+{
+    MonsterAnimation animation = {0};
+    return animation;
+}
+
+void MonsterAnimationStart(MonsterAnimation *animation, Vector3 start, Vector3 target)
+{
+    if (!animation) return;
+    animation->position = start;
+    animation->target = target;
+    animation->rotation = 0.0f;
+    animation->active = true;
+}
+
+bool MonsterAnimationUpdate(MonsterAnimation *animation)
+{
+    if (!animation || !animation->active) return false;
+
+    float speed = 6.0f * GetFrameTime();
+
+    animation->position.x += (animation->target.x - animation->position.x) * speed;
+    animation->position.y += (animation->target.y - animation->position.y) * speed;
+    animation->position.z += (animation->target.z - animation->position.z) * speed;
+    animation->rotation += 720.0f * GetFrameTime();
+
+    float dx = animation->target.x - animation->position.x;
+    float dy = animation->target.y - animation->position.y;
+    float dz = animation->target.z - animation->position.z;
+    float dist = sqrtf(dx * dx + dy * dy + dz * dz);
+
+    if (dist < 0.05f) {
+        animation->position = animation->target;
+        animation->active = false;
+        animation->rotation = 0.0f;
+        return true;
+    }
+
+    return false;
+}
+
+void UpdateMonsterTransformation(bool *transforming, int *transformTimer, int *transformStage)
+{
+    if (!transforming || !transformTimer || !transformStage || !*transforming) return;
+
+    (*transformTimer)++;
+
+    if (*transformTimer > 60) {
+        *transformStage = 1;
+    }
+
+    if (*transformTimer > 120) {
+        *transformStage = 2;
+    }
+
+    if (*transformTimer > 180) {
+        *transforming = false;
+    }
+}
+
+Texture2D SelectMonsterStageTexture(Texture2D stage0, Texture2D stage1, Texture2D stage2, int transformStage)
+{
+    if (transformStage == 0) return stage0;
+    if (transformStage == 1) return stage1;
+    return stage2;
+}
+
+void DrawMonsterBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, Vector2 origin, float rotationDeg)
+{
+    Rectangle source = { 0, 0, (float)texture.width, (float)texture.height };
+
+    DrawBillboardPro(
+        camera,
+        texture,
+        source,
+        position,
+        (Vector3){ 0.0f, 1.0f, 0.0f },
+        scale,
+        origin,
+        rotationDeg,
+        WHITE
+    );
+}
 
 MonsterPlacement MakeMonsterPlacement(int owner, int slot)
 {

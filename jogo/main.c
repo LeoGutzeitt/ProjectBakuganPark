@@ -6,13 +6,8 @@
 #include "battle_map.h"
 #include "game_state.h"
 #include "ui.h"
-
-typedef struct MonsterAnimation {
-    Vector3 position;
-    Vector3 target;
-    float rotation;
-    bool active;
-} MonsterAnimation;
+#include "monster.h"
+#include "card.h"
 
 int main(void)
 {
@@ -118,7 +113,7 @@ int main(void)
     // ANIMAÇÃO
     // =========================
 
-    MonsterAnimation monsterAnim = {0};
+    MonsterAnimation monsterAnim = MonsterAnimationCreate();
     
     int transformStage = 0;
     int transformTimer = 0;
@@ -132,7 +127,7 @@ int main(void)
 
     Model cardModel = LoadModelFromMesh(cardMesh);
 
-    cardModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = playerTexture;
+    ConfigureCardModel(&cardModel, playerTexture);
 
     // =========================
     // random
@@ -153,37 +148,11 @@ int main(void)
         // ANIMAÇÃO DO MONSTRO
         // =========================
 
-        if (monsterAnim.active)
+        if (MonsterAnimationUpdate(&monsterAnim))
         {
-            float speed = 6.0f * GetFrameTime();
-
-            monsterAnim.position.x +=
-                (monsterAnim.target.x - monsterAnim.position.x) * speed;
-
-            monsterAnim.position.y +=
-                (monsterAnim.target.y - monsterAnim.position.y) * speed;
-
-            monsterAnim.position.z +=
-                (monsterAnim.target.z - monsterAnim.position.z) * speed;
-
-            monsterAnim.rotation += 720.0f * GetFrameTime();
-
-            float dx = monsterAnim.target.x - monsterAnim.position.x;
-            float dy = monsterAnim.target.y - monsterAnim.position.y;
-            float dz = monsterAnim.target.z - monsterAnim.position.z;
-
-            float dist = sqrtf(dx*dx + dy*dy + dz*dz);
-
-            if (dist < 0.05f)
-            {
-                monsterAnim.position = monsterAnim.target;
-                monsterAnim.active = false;
-                monsterAnim.rotation = 0.0f;
-
-                transforming = true;
-                transformStage = 0;
-                transformTimer = 0;
-            }
+            transforming = true;
+            transformStage = 0;
+            transformTimer = 0;
         }
     
         
@@ -191,28 +160,7 @@ int main(void)
         // TRANSFORMAÇÃO
         // =========================
 
-        if (transforming)
-        {
-            transformTimer++;
-
-            // após 60 frames -> estágio 1 (mais lento)
-            if (transformTimer > 60)
-            {
-                transformStage = 1;
-            }
-
-            // após 120 frames -> estágio 2 (mais lento)
-            if (transformTimer > 120)
-            {
-                transformStage = 2;
-            }
-
-            // termina animação
-            if (transformTimer > 180)
-            {
-                transforming = false;
-            }
-        }
+        UpdateMonsterTransformation(&transforming, &transformTimer, &transformStage);
 
         // =========================
         // RESOLVE BATALHA
@@ -429,20 +377,11 @@ int main(void)
                                 );
 
                                 // animação
-                                monsterAnim.position = (Vector3){
-                                    targetX + randX,
-                                    4.0f,
-                                    targetZ + randZ
-                                };
-
-                                monsterAnim.target = (Vector3){
-                                    targetX,
-                                    0.7f,
-                                    targetZ
-                                };
-
-                                monsterAnim.rotation = 0.0f;
-                                monsterAnim.active = true;
+                                MonsterAnimationStart(
+                                    &monsterAnim,
+                                    (Vector3){ targetX + randX, 4.0f, targetZ + randZ },
+                                    (Vector3){ targetX, 0.7f, targetZ }
+                                );
 
                                 RemovePlayerMonsterFromHand(
                                     activePlayer,
@@ -794,55 +733,7 @@ int main(void)
 
         int hudY = 10;
 
-        // P1
-
-        DrawTexture(iconP1, 10, hudY, WHITE);
-
-        DrawText(
-            "P1",
-            64,
-            hudY + 6,
-            18,
-            BLACK
-        );
-
-        for (int i = 0; i < 3; i++)
-        {
-            int bx = 104 + i * 22;
-
-            DrawRectangleLines(
-                bx,
-                hudY + 6,
-                18,
-                18,
-                BLACK
-            );
-
-            if (i < player1Score)
-            {
-                DrawRectangle(
-                    bx + 1,
-                    hudY + 7,
-                    16,
-                    16,
-                    GOLD
-                );
-            }
-        }
-
-        // P2
-
-        int p2x = screenWidth - 58;
-
-        DrawTexture(iconP2, p2x, hudY, WHITE);
-
-        DrawText(
-            "P2",
-            p2x - 36,
-            hudY + 6,
-            18,
-            BLACK
-        );
+        DrawScoreBoard(screenWidth, hudY, player1Score, player2Score, iconP1, iconP2);
 
         // =========================
         // UI
@@ -865,30 +756,23 @@ int main(void)
         if (battleAwaitingActivation && battleResolveGX != -1)
         {
             TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
-            int cy = screenHeight/2 - 40;
-            int cx = screenWidth/2;
-            // instructions
-            DrawText("Ativar carta para iniciar batalha:", cx - 180, cy - 30, 18, BLACK);
-
-            // Player 0 prompt
             bool p0present = false;
             bool p1present = false;
+
             for (int m = 0; m < bt.monsterCount; m++)
             {
                 if (bt.monsters[m].owner == 0) p0present = true;
                 if (bt.monsters[m].owner == 1) p1present = true;
             }
 
-            if (p0present)
-            {
-                const char *s0 = battleActivatedByPlayer[0] ? "P1 ativado (F)" : "P1: pressione F";
-                DrawText(s0, cx - 160, cy, 16, battleActivatedByPlayer[0] ? ORANGE : DARKGRAY);
-            }
-            if (p1present)
-            {
-                const char *s1 = battleActivatedByPlayer[1] ? "P2 ativado (L)" : "P2: pressione L";
-                DrawText(s1, cx + 20, cy, 16, battleActivatedByPlayer[1] ? RED : DARKGRAY);
-            }
+            DrawBattleActivationPrompt(
+                screenWidth,
+                screenHeight,
+                p0present,
+                p1present,
+                battleActivatedByPlayer[0],
+                battleActivatedByPlayer[1]
+            );
         }
 
         if (marcadoGX != -1 &&
@@ -909,68 +793,13 @@ int main(void)
         // FEEDBACKS
         // =========================
 
-        if (battleResolveTimer > 0 &&
-            battleMessage[0] != '\0')
-        {
-            DrawRectangle(
-                0,
-                0,
-                screenWidth,
-                screenHeight,
-                (Color){0,0,0,35}
-            );
-
-            DrawText(
-                battleMessage,
-                screenWidth/2 -
-                MeasureText(battleMessage, 20)/2,
-                40,
-                20,
-                YELLOW
-            );
-        }
-
-        if (placedFeedbackTimer > 0)
-        {
-            float alpha =
-                (placedFeedbackTimer / 60.0f);
-
-            DrawRectangle(
-                0,
-                0,
-                screenWidth,
-                screenHeight,
-                (Color){
-                    0,
-                    0,
-                    0,
-                    (unsigned char)(50 * alpha)
-                }
-            );
-        }
+        DrawBattleFeedbackOverlay(screenWidth, screenHeight, battleMessage, battleResolveTimer, placedFeedbackTimer);
 
         // =========================
         // TEXTO
         // =========================
 
-        DrawText(
-            "ENTER marca tile | C carta | M monstro",
-            10,
-            screenHeight - 52,
-            14,
-            DARKGRAY
-        );
-
-        if (placeMessage[0] != '\0')
-        {
-            DrawText(
-                placeMessage,
-                10,
-                screenHeight - 72,
-                14,
-                RED
-            );
-        }
+        DrawGameHints(screenWidth, screenHeight, placeMessage);
 
         EndDrawing();
     }
