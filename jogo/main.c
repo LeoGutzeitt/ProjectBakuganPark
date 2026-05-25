@@ -9,6 +9,16 @@
 #include "monster.h"
 #include "card.h"
 
+typedef struct {
+    bool active;
+    int player;
+    int gx;
+    int gz;
+    int slot;
+    MonsterSide chosenSide;
+    float cursorT;
+} MonsterPlacementChallenge;
+
 int main(void)
 {
     const int screenWidth = 1980;
@@ -114,6 +124,7 @@ int main(void)
     // =========================
 
     MonsterAnimation monsterAnim = MonsterAnimationCreate();
+    MonsterPlacementChallenge monsterPlacement = {0};
     
     int transformStage = 0;
     int transformTimer = 0;
@@ -129,18 +140,8 @@ int main(void)
 
     ConfigureCardModel(&cardModel, playerTexture);
 
-    // =========================
-    // random
-    // =========================
-
-    int randX = GetRandomValue(-10, 10);
-    int randZ = GetRandomValue(-10, 10);
-
-    // =========================
     // LOOP PRINCIPAL
     // =========================
-
-
 
     while (!WindowShouldClose())
     {
@@ -154,8 +155,7 @@ int main(void)
             transformStage = 0;
             transformTimer = 0;
         }
-    
-        
+
         // =========================
         // TRANSFORMAÇÃO
         // =========================
@@ -174,56 +174,32 @@ int main(void)
                 battleResolveGX != -1 &&
                 battleResolveGZ != -1)
             {
-                TileEntity battleTile =
-                    GetTileAt(battleResolveGX, battleResolveGZ);
-
+                TileEntity battleTile = GetTileAt(battleResolveGX, battleResolveGZ);
                 MonsterPlacement m0 = battleTile.monsters[0];
                 MonsterPlacement m1 = battleTile.monsters[1];
 
                 int winnerOwner = -1;
 
-                if (ResolveTileBattle(
-                        battleResolveGX,
-                        battleResolveGZ,
-                        &winnerOwner))
+                if (ResolveTileBattle(battleResolveGX, battleResolveGZ, &winnerOwner))
                 {
                     if (winnerOwner == 0) player1Score++;
                     else if (winnerOwner == 1) player2Score++;
 
                     if (m0.owner == m1.owner)
                     {
-                        snprintf(
-                            placeMessage,
-                            sizeof(placeMessage) - 1,
-                            "P%d colocou 2 monstros e levou o ponto",
-                            winnerOwner + 1
-                        );
+                        snprintf(placeMessage, sizeof(placeMessage) - 1, "P%d colocou 2 monstros e levou o ponto", winnerOwner + 1);
                     }
                     else if (m0.power > m1.power)
                     {
-                        snprintf(
-                            placeMessage,
-                            sizeof(placeMessage) - 1,
-                            "P%d venceu a batalha",
-                            m0.owner + 1
-                        );
+                        snprintf(placeMessage, sizeof(placeMessage) - 1, "P%d venceu a batalha", m0.owner + 1);
                     }
                     else if (m1.power > m0.power)
                     {
-                        snprintf(
-                            placeMessage,
-                            sizeof(placeMessage) - 1,
-                            "P%d venceu a batalha",
-                            m1.owner + 1
-                        );
+                        snprintf(placeMessage, sizeof(placeMessage) - 1, "P%d venceu a batalha", m1.owner + 1);
                     }
                     else
                     {
-                        snprintf(
-                            placeMessage,
-                            sizeof(placeMessage) - 1,
-                            "Empate: carta decidiu"
-                        );
+                        snprintf(placeMessage, sizeof(placeMessage) - 1, "Empate: carta decidiu");
                     }
 
                     placedFeedbackTimer = 60;
@@ -231,7 +207,6 @@ int main(void)
 
                 battleResolveGX = -1;
                 battleResolveGZ = -1;
-
                 battleMessage[0] = '\0';
             }
         }
@@ -240,32 +215,30 @@ int main(void)
         // MOVIMENTO
         // =========================
 
-        if (IsKeyPressed(KEY_S)) playerGX++;
-        if (IsKeyPressed(KEY_W)) playerGX--;
-        if (IsKeyPressed(KEY_D)) playerGZ--;
-        if (IsKeyPressed(KEY_A)) playerGZ++;
+        if (!monsterPlacement.active)
+        {
+            if (IsKeyPressed(KEY_S)) playerGX++;
+            if (IsKeyPressed(KEY_W)) playerGX--;
+            if (IsKeyPressed(KEY_D)) playerGZ--;
+            if (IsKeyPressed(KEY_A)) playerGZ++;
 
-        // limites
-        if (playerGX < 0) playerGX = 0;
-        if (playerGZ < 0) playerGZ = 0;
-
-        if (playerGX >= gridSizeX)
-            playerGX = gridSizeX - 1;
-
-        if (playerGZ >= gridSizeZ)
-            playerGZ = gridSizeZ - 1;
+            if (playerGX < 0) playerGX = 0;
+            if (playerGZ < 0) playerGZ = 0;
+            if (playerGX >= gridSizeX) playerGX = gridSizeX - 1;
+            if (playerGZ >= gridSizeZ) playerGZ = gridSizeZ - 1;
+        }
 
         // =========================
         // MARCAR TILE
         // =========================
 
-        if (IsKeyPressed(KEY_ENTER))
+        if (!monsterPlacement.active && IsKeyPressed(KEY_ENTER))
         {
             marcadoGX = playerGX;
             marcadoGZ = playerGZ;
         }
 
-        if (IsKeyPressed(KEY_ESCAPE))
+        if (!monsterPlacement.active && IsKeyPressed(KEY_ESCAPE))
         {
             marcadoGX = -1;
             marcadoGZ = -1;
@@ -278,23 +251,110 @@ int main(void)
         if (placedFeedbackTimer > 0)
             placedFeedbackTimer--;
 
+        if (monsterPlacement.active)
+        {
+            if (IsKeyPressed(KEY_A)) monsterPlacement.chosenSide = MONSTER_SIDE_LEFT;
+            if (IsKeyPressed(KEY_D)) monsterPlacement.chosenSide = MONSTER_SIDE_RIGHT;
+
+            monsterPlacement.cursorT += GetFrameTime() * 1.6f;
+            if (monsterPlacement.cursorT > 1.0f)
+                monsterPlacement.cursorT -= 1.0f;
+
+            if (IsKeyPressed(KEY_SPACE))
+            {
+                MonsterSide hitSide = (monsterPlacement.cursorT < 0.5f)
+                    ? MONSTER_SIDE_LEFT
+                    : MONSTER_SIDE_RIGHT;
+
+                MonsterSide finalSide =
+                    (hitSide == monsterPlacement.chosenSide)
+                    ? monsterPlacement.chosenSide
+                    : (monsterPlacement.chosenSide == MONSTER_SIDE_LEFT
+                        ? MONSTER_SIDE_RIGHT
+                        : MONSTER_SIDE_LEFT);
+
+                if (PlaceMonsterAt(
+                        monsterPlacement.gx,
+                        monsterPlacement.gz,
+                        monsterPlacement.player,
+                        monsterPlacement.slot,
+                        finalSide))
+                {
+                    float targetX, targetZ;
+                    GridToWorld(
+                        monsterPlacement.gx,
+                        monsterPlacement.gz,
+                        tileWidth,
+                        tileDepth,
+                        offsetX,
+                        offsetZ,
+                        &targetX,
+                        &targetZ
+                    );
+
+                    int randomX = GetRandomValue(-10, 10);
+                    int randomZ = GetRandomValue(-10, 10);
+
+                    MonsterAnimationStart(
+                        &monsterAnim,
+                        finalSide,
+                        (Vector3){ targetX + randomX, 4.0f, targetZ + randomZ },
+                        (Vector3){ targetX, 0.7f, targetZ }
+                    );
+
+                    RemovePlayerMonsterFromHand(monsterPlacement.player, monsterPlacement.slot);
+
+                    int monsterCount = GetTileMonsterCount(monsterPlacement.gx, monsterPlacement.gz);
+
+                    if (monsterCount < 2)
+                    {
+                        snprintf(
+                            placeMessage,
+                            sizeof(placeMessage) - 1,
+                            (hitSide == monsterPlacement.chosenSide)
+                                ? "Lado acertado"
+                                : "Lado invertido"
+                        );
+                        placedFeedbackTimer = 60;
+                    }
+                    else
+                    {
+                        snprintf(battleMessage, sizeof(battleMessage) - 1, "Batalha!");
+                        battleResolveGX = monsterPlacement.gx;
+                        battleResolveGZ = monsterPlacement.gz;
+                        battleAwaitingActivation = true;
+                        battleActivatedByPlayer[0] = false;
+                        battleActivatedByPlayer[1] = false;
+                        battleWinnerOwner = -1;
+                        PeekTileBattleWinner(battleResolveGX, battleResolveGZ, &battleWinnerOwner);
+                    }
+
+                    monsterPlacement.active = false;
+                    marcadoGX = -1;
+                    marcadoGZ = -1;
+                    activePlayer ^= 1;
+                }
+            }
+
+            if (IsKeyPressed(KEY_ESCAPE))
+            {
+                monsterPlacement.active = false;
+            }
+        }
+
         // =========================
         // AÇÕES
         // =========================
 
-        if (battleResolveTimer == 0 &&
+        if (!monsterPlacement.active &&
+            battleResolveTimer == 0 &&
             marcadoGX != -1 &&
             marcadoGZ != -1 &&
             !battleAwaitingActivation)
         {
             GetPlayerHands(playerCards, playerMonsters);
 
-            bool canPlaceMonster =
-                (CountPlayerCardsOnMap(activePlayer) > 0);
-
-            // =====================
-            // COLOCAR CARTA
-            // =====================
+            bool canPlaceMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
 
             if (IsKeyPressed(KEY_C))
             {
@@ -302,25 +362,13 @@ int main(void)
                 {
                     if (playerCards[activePlayer][s])
                     {
-                        if (PlaceCardAt(
-                                marcadoGX,
-                                marcadoGZ,
-                                activePlayer,
-                                s))
+                        if (PlaceCardAt(marcadoGX, marcadoGZ, activePlayer, s))
                         {
                             RemovePlayerCardFromHand(activePlayer, s);
-
-                            snprintf(
-                                placeMessage,
-                                sizeof(placeMessage)-1,
-                                "Carta colocada"
-                            );
-
+                            snprintf(placeMessage, sizeof(placeMessage) - 1, "Carta colocada");
                             placedFeedbackTimer = 60;
-
                             marcadoGX = -1;
                             marcadoGZ = -1;
-
                             activePlayer ^= 1;
                         }
 
@@ -329,19 +377,11 @@ int main(void)
                 }
             }
 
-            // =====================
-            // COLOCAR MONSTRO
-            // =====================
-
             if (IsKeyPressed(KEY_M))
             {
                 if (!canPlaceMonster)
                 {
-                    strncpy(
-                        placeMessage,
-                        "Coloque uma carta primeiro!",
-                        sizeof(placeMessage)-1
-                    );
+                    strncpy(placeMessage, "Coloque uma carta primeiro!", sizeof(placeMessage) - 1);
                 }
                 else
                 {
@@ -349,85 +389,19 @@ int main(void)
                     {
                         if (playerMonsters[activePlayer][s])
                         {
-                            if (PlaceMonsterAt(
-                                    marcadoGX,
-                                    marcadoGZ,
-                                    activePlayer,
-                                    s))
-                            {
-                                // =========================
-                                // random
-                                // =========================
+                            monsterPlacement.active = true;
+                            monsterPlacement.player = activePlayer;
+                            monsterPlacement.gx = marcadoGX;
+                            monsterPlacement.gz = marcadoGZ;
+                            monsterPlacement.slot = s;
+                            monsterPlacement.chosenSide = MONSTER_SIDE_LEFT;
+                            monsterPlacement.cursorT = 0.0f;
 
-                                int randX = GetRandomValue(-10, 10);
-                                int randZ = GetRandomValue(-10, 10);
-
-                                // posição do tile
-                                float targetX, targetZ;
-
-                                GridToWorld(
-                                    marcadoGX,
-                                    marcadoGZ,
-                                    tileWidth,
-                                    tileDepth,
-                                    offsetX,
-                                    offsetZ,
-                                    &targetX,
-                                    &targetZ
-                                );
-
-                                // animação
-                                MonsterAnimationStart(
-                                    &monsterAnim,
-                                    (Vector3){ targetX + randX, 4.0f, targetZ + randZ },
-                                    (Vector3){ targetX, 0.7f, targetZ }
-                                );
-
-                                RemovePlayerMonsterFromHand(
-                                    activePlayer,
-                                    s
-                                );
-
-                                int monsterCount =
-                                    GetTileMonsterCount(
-                                        marcadoGX,
-                                        marcadoGZ
-                                    );
-
-                                if (monsterCount < 2)
-                                {
-                                    snprintf(
-                                        placeMessage,
-                                        sizeof(placeMessage)-1,
-                                        "Monstro colocado"
-                                    );
-
-                                    placedFeedbackTimer = 60;
-                                }
-                                else
-                                {
-                                    snprintf(
-                                        battleMessage,
-                                        sizeof(battleMessage)-1,
-                                        "Batalha!"
-                                    );
-
-                                    battleResolveGX = marcadoGX;
-                                    battleResolveGZ = marcadoGZ;
-
-                                    // enter activation phase: owners must press to activate their card
-                                    battleAwaitingActivation = true;
-                                    battleActivatedByPlayer[0] = false;
-                                    battleActivatedByPlayer[1] = false;
-                                    battleWinnerOwner = -1;
-                                    PeekTileBattleWinner(battleResolveGX, battleResolveGZ, &battleWinnerOwner);
-                                }
-
-                                marcadoGX = -1;
-                                marcadoGZ = -1;
-
-                                activePlayer ^= 1;
-                            }
+                            snprintf(
+                                placeMessage,
+                                sizeof(placeMessage) - 1,
+                                "A/D escolhe o lado | ESPACO confirma"
+                            );
 
                             break;
                         }
@@ -437,14 +411,13 @@ int main(void)
         }
 
         // =========================
-        // ATIVAÇÃO DE BATALHA (quando entrada de confirmação é necessária)
-        // Player 0 pressiona F, Player 1 pressiona L
+        // ATIVAÇÃO DE BATALHA
+        // =========================
+
         if (battleAwaitingActivation)
         {
-            // allow owner(s) to activate their card(s)
             if (IsKeyPressed(KEY_F))
             {
-                // check if player 0 has a monster in that tile
                 TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
                 for (int m = 0; m < bt.monsterCount; m++)
                 {
@@ -461,9 +434,10 @@ int main(void)
                 }
             }
 
-            // determine if activation requirement satisfied:
             TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
-            bool needP0 = false, needP1 = false;
+            bool needP0 = false;
+            bool needP1 = false;
+
             if (bt.monsterCount >= 2)
             {
                 needP0 = (bt.monsters[0].owner == 0) || (bt.monsters[1].owner == 0);
@@ -471,7 +445,6 @@ int main(void)
             }
             else if (bt.monsterCount == 1)
             {
-                // single monster: require its owner only
                 needP0 = (bt.monsters[0].owner == 0);
                 needP1 = (bt.monsters[0].owner == 1);
             }
@@ -482,17 +455,11 @@ int main(void)
 
             if (ok)
             {
-                // both (or single) activated -> start battle countdown
                 battleAwaitingActivation = false;
                 battleResolveTimer = BATTLE_COUNTDOWN_FRAMES;
-                // small message
-                snprintf(battleMessage, sizeof(battleMessage)-1, "BATALHA: ativado!");
+                snprintf(battleMessage, sizeof(battleMessage) - 1, "BATALHA: ativado!");
             }
         }
-
-        // =========================
-        // TROCA PLAYER
-        // =========================
 
         if (IsKeyPressed(KEY_T))
             activePlayer ^= 1;
@@ -502,45 +469,19 @@ int main(void)
         // =========================
 
         float playerX, playerZ;
-
-        GridToWorld(
-            playerGX,
-            playerGZ,
-            tileWidth,
-            tileDepth,
-            offsetX,
-            offsetZ,
-            &playerX,
-            &playerZ
-        );
+        GridToWorld(playerGX, playerGZ, tileWidth, tileDepth, offsetX, offsetZ, &playerX, &playerZ);
 
         // =========================
         // DESENHO
         // =========================
 
         BeginDrawing();
-
         ClearBackground(RAYWHITE);
-
         BeginMode3D(camera);
 
-        DrawBattleMap(
-            gridSizeX,
-            gridSizeZ,
-            tileWidth,
-            tileDepth,
-            offsetX,
-            offsetZ,
-            marcadoGX,
-            marcadoGZ
-        );
-
-        // =========================
-        // ESCOLHE TEXTURA
-        // =========================
+        DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ);
 
         Texture2D currentTexture;
-
         if (transformStage == 0)
         {
             currentTexture = monsterStage0;
@@ -554,120 +495,74 @@ int main(void)
             currentTexture = monsterStage2;
         }
 
-        // =========================
-        // PLAYER
-        // =========================
-
-        Vector3 cardPos = {
-            playerX,
-            0.5f,
-            playerZ
-        };
-
-        DrawModel(
-            cardModel,
-            cardPos,
-            1.0f,
-            WHITE
-        );
-
-        // =========================
-        // DESENHAR MAPA
-        // =========================
+        Vector3 cardPos = { playerX, 0.5f, playerZ };
+        DrawModel(cardModel, cardPos, 1.0f, WHITE);
 
         for (int gz = 0; gz < GetGridSizeZ(); gz++)
         {
             for (int gx = 0; gx < GetGridSizeX(); gx++)
             {
                 TileEntity te = GetTileAt(gx, gz);
-
                 float ex, ez;
 
-                GridToWorld(
-                    gx,
-                    gz,
-                    tileWidth,
-                    tileDepth,
-                    offsetX,
-                    offsetZ,
-                    &ex,
-                    &ez
-                );
-
-                // =====================
-                // CARTA
-                // =====================
+                GridToWorld(gx, gz, tileWidth, tileDepth, offsetX, offsetZ, &ex, &ez);
 
                 if (te.card.owner != -1)
                 {
-                    Vector3 tileCardPos = {
-                        ex,
-                        0.03f,
-                        ez
-                    };
+                    DrawCardModelAt(&cardModel, (Vector3){ ex, 0.03f, ez });
 
-                    DrawCardModelAt(&cardModel, tileCardPos);
+                    if (monsterPlacement.active &&
+                        gx == monsterPlacement.gx &&
+                        gz == monsterPlacement.gz)
+                    {
+                        DrawCube((Vector3){ ex, 0.05f, ez - 0.75f }, 1.8f, 0.03f, 1.35f, Fade(ORANGE, 0.85f));
+                        DrawCube((Vector3){ ex, 0.05f, ez + 0.75f }, 1.8f, 0.03f, 1.35f, Fade(RED, 0.85f));
+                        DrawLine3D((Vector3){ ex, 0.08f, ez - 1.5f }, (Vector3){ ex, 0.08f, ez + 1.5f }, BLACK);
+                    }
                 }
-
-                // =====================
-                // MONSTROS
-                // =====================
 
                 if (te.monsterCount > 0)
                 {
                     for (int m = 0; m < te.monsterCount; m++)
                     {
-                        float xOffset =
-                            (te.monsterCount == 2)
-                            ? ((m == 0)
-                                ? -0.22f
-                                : 0.22f)
-                            : 0.0f;
+                        bool isBattleTile =
+                            (battleResolveTimer > 0 &&
+                             gx == battleResolveGX &&
+                             gz == battleResolveGZ);
+
+                        MonsterSide side = te.monsters[m].side;
+
+                        float xOffset = 0.0f;
+                        float zOffset = (side == MONSTER_SIDE_LEFT) ? -0.78f : 0.78f;
+                        float yOffset = (side == MONSTER_SIDE_LEFT) ? 0.68f : 0.56f;
 
                         Vector3 monsterPos = {
                             ex + xOffset,
-                            0.9f + (0.08f * m),
-                            ez
+                            yOffset + (0.08f * m),
+                            ez + zOffset
                         };
-
-                        // NÃO desenha o estático
-                        // enquanto animação acontece
 
                         if (!monsterAnim.active)
                         {
                             float monsterScale = 0.8f;
-                            float displayXOffset = xOffset;
-                            float faceRotDeg = 0.0f;
 
-                            if (battleResolveTimer > 0 && gx == battleResolveGX && gz == battleResolveGZ)
+                            if (isBattleTile)
                             {
-                                int owner = te.monsters[m].owner;
-                                displayXOffset = (owner == 0) ? -0.35f : 0.35f;
-                                faceRotDeg = (owner == 0) ? 0.0f : 180.0f;
-
-                                if (owner == battleWinnerOwner && battleResolveTimer <= 30)
+                                if (te.monsters[m].owner == battleWinnerOwner && battleResolveTimer <= 30)
                                 {
                                     float shakePhase = (float)(30 - battleResolveTimer);
                                     float shake = sinf(shakePhase * 10.0f) * 0.12f * (shakePhase / 30.0f);
                                     monsterPos.x += shake;
+                                    monsterPos.z += shake * 0.5f;
                                 }
                             }
 
-                            monsterPos.x = ex + displayXOffset;
-
-                            Rectangle source = { 0, 0, (float)currentTexture.width, (float)currentTexture.height };
-                            Vector2 origin = { 0.5f, 0.5f };
-
-                            DrawBillboardPro(
+                            DrawMonsterBillboard(
                                 camera,
                                 currentTexture,
-                                source,
                                 monsterPos,
-                                (Vector3){0.0f, 1.0f, 0.0f},
                                 (Vector2){ monsterScale, monsterScale },
-                                origin,
-                                faceRotDeg,
-                                WHITE
+                                side
                             );
                         }
                     }
@@ -675,65 +570,26 @@ int main(void)
             }
         }
 
-        // =========================
-        // MONSTRO ANIMADO
-        // =========================
-
         if (monsterAnim.active)
         {
-            Rectangle source = {
-                0,
-                0,
-                (float)currentTexture.width,
-                (float)currentTexture.height
-            };
-
-            Vector2 origin = {
-                0.6f,
-                0.6f
-            };
-
-            DrawBillboardPro(
+            DrawMonsterBillboard(
                 camera,
                 currentTexture,
-                source,
                 monsterAnim.position,
-                (Vector3){0.0f, 1.0f, 0.0f},
-                (Vector2){1.2f, 1.2f},
-                origin,
-                monsterAnim.rotation,
-                WHITE
+                (Vector2){ 1.2f, 1.2f },
+                monsterAnim.side
             );
         }
 
         EndMode3D();
 
-        // =========================
-        // HUD
-        // =========================
-
         int hudY = 10;
-
         DrawScoreBoard(screenWidth, hudY, player1Score, player2Score, iconP1, iconP2);
 
-        // =========================
-        // UI
-        // =========================
+        GetPlayerHands(playerCards, playerMonsters);
 
-        GetPlayerHands(
-            playerCards,
-            playerMonsters
-        );
+        DrawBottomMenu(screenWidth, screenHeight, activePlayer, playerCards, playerMonsters);
 
-        DrawBottomMenu(
-            screenWidth,
-            screenHeight,
-            activePlayer,
-            playerCards,
-            playerMonsters
-        );
-
-        // Activation prompts during battle awaiting activation
         if (battleAwaitingActivation && battleResolveGX != -1)
         {
             TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
@@ -756,51 +612,54 @@ int main(void)
             );
         }
 
-        if (marcadoGX != -1 &&
-            marcadoGZ != -1)
+        if (marcadoGX != -1 && marcadoGZ != -1)
         {
-            bool canPickMonster =
-                (CountPlayerCardsOnMap(activePlayer) > 0);
-
-            DrawSelectionMenu(
-                screenWidth,
-                screenHeight,
-                canPickMonster,
-                activePlayer
-            );
+            bool canPickMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
+            DrawSelectionMenu(screenWidth, screenHeight, canPickMonster, activePlayer);
         }
-
-        // =========================
-        // FEEDBACKS
-        // =========================
 
         DrawBattleFeedbackOverlay(screenWidth, screenHeight, battleMessage, battleResolveTimer, placedFeedbackTimer);
 
-        // =========================
-        // TEXTO
-        // =========================
+        if (monsterPlacement.active)
+        {
+            DrawPlacementPrecisionBar(
+                screenWidth,
+                screenHeight,
+                monsterPlacement.chosenSide,
+                monsterPlacement.cursorT,
+                monsterPlacement.player
+            );
 
+            DrawText(
+                "Divida a carta em 2 lados e acerte a barra",
+                screenWidth / 2 - 180,
+                screenHeight - 210,
+                16,
+                BLACK
+            );
+
+            DrawText(
+                "Lado esquerdo = primeira metade | lado direito = segunda metade",
+                screenWidth / 2 - 230,
+                screenHeight - 188,
+                14,
+                DARKGRAY
+            );
+        }
         DrawGameHints(screenWidth, screenHeight, placeMessage);
 
         EndDrawing();
     }
 
-    // =========================
-    // FINALIZAÇÃO
-    // =========================
-
     UnloadModel(cardModel);
-
     UnloadTexture(playerTexture);
     UnloadTexture(monsterStage0);
     UnloadTexture(monsterStage1);
     UnloadTexture(monsterStage2);
-
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
 
     FreeGameState();
-
     CloseWindow();
 
     return 0;

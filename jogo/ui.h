@@ -2,6 +2,7 @@
 #define UI_H
 
 #include "raylib.h"
+#include "monster.h"
 
 // Desenha o menu inferior com slots de monstro (círculos) e cartas (retângulos)
 void DrawBottomMenu(int screenWidth, int screenHeight, int activePlayer, int playerCards[2][3], int playerMonsters[2][3]);
@@ -14,5 +15,6 @@ void DrawScoreBoard(int screenWidth, int hudY, int player1Score, int player2Scor
 void DrawBattleActivationPrompt(int screenWidth, int screenHeight, bool p0Present, bool p1Present, bool p0Activated, bool p1Activated);
 void DrawGameHints(int screenWidth, int screenHeight, const char *placeMessage);
 void DrawBattleFeedbackOverlay(int screenWidth, int screenHeight, const char *battleMessage, int battleResolveTimer, int placedFeedbackTimer);
+void DrawPlacementPrecisionBar(int screenWidth, int screenHeight, int chosenSide, float cursorT, int activePlayer);
 
 #endif // fim de UI_H

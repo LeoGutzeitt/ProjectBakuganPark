@@ -4,12 +4,14 @@
 MonsterAnimation MonsterAnimationCreate(void)
 {
     MonsterAnimation animation = {0};
+    animation.side = MONSTER_SIDE_LEFT;
     return animation;
 }
 
-void MonsterAnimationStart(MonsterAnimation *animation, Vector3 start, Vector3 target)
+void MonsterAnimationStart(MonsterAnimation *animation, MonsterSide side, Vector3 start, Vector3 target)
 {
     if (!animation) return;
+    animation->side = side;
     animation->position = start;
     animation->target = target;
     animation->rotation = 0.0f;
@@ -68,19 +70,22 @@ Texture2D SelectMonsterStageTexture(Texture2D stage0, Texture2D stage1, Texture2
     return stage2;
 }
 
-void DrawMonsterBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, Vector2 origin, float rotationDeg)
+void DrawMonsterBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, MonsterSide side)
 {
     Rectangle source = { 0, 0, (float)texture.width, (float)texture.height };
 
-    DrawBillboardPro(
+    if (side == MONSTER_SIDE_RIGHT)
+    {
+        source.x = (float)texture.width;
+        source.width = -(float)texture.width;
+    }
+
+    DrawBillboardRec(
         camera,
         texture,
         source,
         position,
-        (Vector3){ 0.0f, 1.0f, 0.0f },
         scale,
-        origin,
-        rotationDeg,
         WHITE
     );
 }
@@ -91,6 +96,7 @@ MonsterPlacement MakeMonsterPlacement(int owner, int slot)
     monster.owner = owner;
     monster.slot = slot;
     monster.power = slot + 1;
+    monster.side = MONSTER_SIDE_LEFT;
     return monster;
 }
 
@@ -100,6 +106,7 @@ MonsterPlacement EmptyMonsterPlacement(void)
     monster.owner = -1;
     monster.slot = -1;
     monster.power = 0;
+    monster.side = MONSTER_SIDE_LEFT;
     return monster;
 }
 

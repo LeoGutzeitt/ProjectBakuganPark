@@ -149,3 +149,24 @@ void DrawBattleFeedbackOverlay(int screenWidth, int screenHeight, const char *ba
         DrawRectangle(0, 0, screenWidth, screenHeight, (Color){0, 0, 0, (unsigned char)(50 * alpha)});
     }
 }
+
+void DrawPlacementPrecisionBar(int screenWidth, int screenHeight, int chosenSide, float cursorT, int activePlayer)
+{
+    int barW = 420;
+    int barH = 24;
+    int x = (screenWidth - barW) / 2;
+    int y = screenHeight - 170;
+
+    DrawRectangle(x, y, barW, barH, (Color){35, 35, 35, 230});
+    DrawRectangle(x, y, barW / 2, barH, (Color){225, 135, 40, 255});
+    DrawRectangle(x + barW / 2, y, barW / 2, barH, (Color){225, 60, 60, 255});
+    DrawRectangleLines(x, y, barW, barH, BLACK);
+    DrawLine(x + barW / 2, y, x + barW / 2, y + barH, BLACK);
+
+    int cursorX = x + (int)(cursorT * (float)barW);
+    DrawRectangle(cursorX - 4, y - 6, 8, barH + 12, WHITE);
+
+    const char *sideLabel = (chosenSide == MONSTER_SIDE_LEFT) ? "Lado escolhido: esquerda" : "Lado escolhido: direita";
+    DrawText(sideLabel, x, y - 28, 18, activePlayer == 0 ? ORANGE : RED);
+    DrawText("A/D muda lado | ESPACO confirma", x, y + 34, 16, DARKGRAY);
+}
