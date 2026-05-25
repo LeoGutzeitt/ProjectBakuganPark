@@ -11,15 +11,15 @@
 
 int main(void)
 {
-    const int screenWidth = 1000;
-    const int screenHeight = 700;
+    const int screenWidth = 1980;
+    const int screenHeight = 1080;
 
     InitWindow(screenWidth, screenHeight, "Grid Movement");
 
     Camera3D camera = { 0 };
-    camera.position = (Vector3){ 8.0f, 5.0f, 0.0f };
+    camera.position = (Vector3){ 10.0f, 7.0f, 0.0f };
     camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
+    camera.up = (Vector3){ 0.0f, 4.0f, 0.0f };
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
@@ -600,32 +600,13 @@ int main(void)
 
                 if (te.card.owner != -1)
                 {
-                    Color cardCol =
-                        te.card.owner == 0
-                        ? ORANGE
-                        : RED;
-
                     Vector3 tileCardPos = {
                         ex,
-                        0.1f,
+                        0.03f,
                         ez
                     };
 
-                    DrawCube(
-                        tileCardPos,
-                        1.8f,
-                        0.05f,
-                        2.4f,
-                        cardCol
-                    );
-
-                    DrawCubeWires(
-                        tileCardPos,
-                        1.8f,
-                        0.05f,
-                        2.4f,
-                        BLACK
-                    );
+                    DrawCardModelAt(&cardModel, tileCardPos);
                 }
 
                 // =====================
