@@ -1,6 +1,36 @@
 #include "monster.h"
 #include <math.h>
 
+const char *BakuganTypeName(int type)
+{
+    static const char *names[BAKUGAN_TYPE_COUNT] = {
+        "Dragao",
+        "Tigre",
+        "Lobo",
+        "Golem",
+        "Serpente",
+        "Fenix"
+    };
+
+    if (type < 0 || type >= BAKUGAN_TYPE_COUNT) return "Desconhecido";
+    return names[type];
+}
+
+const char *BakuganElementName(int element)
+{
+    static const char *names[BAKUGAN_ELEMENT_COUNT] = {
+        "Fogo",
+        "Agua",
+        "Terra",
+        "Vento",
+        "Sombra",
+        "Luz"
+    };
+
+    if (element < 0 || element >= BAKUGAN_ELEMENT_COUNT) return "Desconhecido";
+    return names[element];
+}
+
 MonsterAnimation MonsterAnimationCreate(void)
 {
     MonsterAnimation animation = {0};
@@ -90,12 +120,14 @@ void DrawMonsterBillboard(Camera3D camera, Texture2D texture, Vector3 position, 
     );
 }
 
-MonsterPlacement MakeMonsterPlacement(int owner, int slot)
+MonsterPlacement MakeMonsterPlacement(int owner, int slot, int type, int element)
 {
     MonsterPlacement monster;
     monster.owner = owner;
     monster.slot = slot;
-    monster.power = slot + 1;
+    monster.type = type;
+    monster.element = element;
+    monster.power = 1 + type + element;
     monster.side = MONSTER_SIDE_LEFT;
     return monster;
 }
@@ -106,6 +138,8 @@ MonsterPlacement EmptyMonsterPlacement(void)
     monster.owner = -1;
     monster.slot = -1;
     monster.power = 0;
+    monster.type = -1;
+    monster.element = -1;
     monster.side = MONSTER_SIDE_LEFT;
     return monster;
 }
@@ -123,6 +157,16 @@ int SlotDoMonstro(MonsterPlacement monster)
 int MonsterPlacementPower(MonsterPlacement monster)
 {
     return monster.power;
+}
+
+int TipoDoMonstro(MonsterPlacement monster)
+{
+    return monster.type;
+}
+
+int ElementoDoMonstro(MonsterPlacement monster)
+{
+    return monster.element;
 }
 
 bool MonsterPlacementIsEmpty(MonsterPlacement monster)

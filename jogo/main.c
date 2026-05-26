@@ -336,6 +336,8 @@ int main(void)
                         monsterPlacement.gz,
                         monsterPlacement.player,
                         monsterPlacement.slot,
+                        deckSetup.monsterTypes[monsterPlacement.player][monsterPlacement.slot],
+                        deckSetup.monsterElements[monsterPlacement.player][monsterPlacement.slot],
                         finalSide))
                 {
                     float targetX, targetZ;
@@ -420,7 +422,7 @@ int main(void)
                 {
                     if (playerCards[activePlayer][s])
                     {
-                        if (PlaceCardAt(marcadoGX, marcadoGZ, activePlayer, s))
+                        if (PlaceCardAt(marcadoGX, marcadoGZ, activePlayer, s, deckSetup.cardTypes[activePlayer][s]))
                         {
                             RemovePlayerCardFromHand(activePlayer, s);
                             snprintf(placeMessage, sizeof(placeMessage) - 1, "Carta colocada");

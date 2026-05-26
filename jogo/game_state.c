@@ -100,22 +100,22 @@ bool CanPlaceCardAt(int gx, int gz)
     return false;
 }
 
-bool PlaceCardAt(int gx, int gz, int owner, int slot)
+bool PlaceCardAt(int gx, int gz, int owner, int slot, int type)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
     if (!CanPlaceCardAt(gx, gz)) return false;
-    tile->card = CriarCarta(owner, slot);
+    tile->card = CriarCarta(owner, slot, type);
     return true;
 }
 
-bool PlaceMonsterAt(int gx, int gz, int owner, int slot, MonsterSide side)
+bool PlaceMonsterAt(int gx, int gz, int owner, int slot, int type, int element, MonsterSide side)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
     if (tile->card.owner == -1) return false;
     if (tile->monsterCount >= 2) return false;
-    MonsterPlacement monster = MakeMonsterPlacement(owner, slot);
+    MonsterPlacement monster = MakeMonsterPlacement(owner, slot, type, element);
     monster.side = side;
     tile->monsters[tile->monsterCount] = monster;
     tile->monsterCount++;

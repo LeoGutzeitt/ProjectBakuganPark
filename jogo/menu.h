@@ -13,8 +13,11 @@ typedef struct {
     int activePlayer;
     int selectedRow;
     int selectedSlot;
-    bool cardSelected[2][3];
-    bool monsterSelected[2][3];
+    int selectedChoice;
+    int cardTypes[2][3];
+    int monsterTypes[2][3];
+    int monsterElements[2][3];
+    int awaitingElementSlot; // -1 when not awaiting
 } DeckSetupState;
 
 void InitDeckSetupState(DeckSetupState *state);

@@ -25,8 +25,8 @@ int PlayerCardSlotAvailable(int player);
 
 // Coloca entidades no mapa; retorna true em caso de sucesso
 bool CanPlaceCardAt(int gx, int gz);
-bool PlaceCardAt(int gx, int gz, int owner, int slot);
-bool PlaceMonsterAt(int gx, int gz, int owner, int slot, MonsterSide side);
+bool PlaceCardAt(int gx, int gz, int owner, int slot, int type);
+bool PlaceMonsterAt(int gx, int gz, int owner, int slot, int type, int element, MonsterSide side);
 
 // Resolve a batalha quando um tile tem 2 monstros.
 // Retorna true quando o tile foi resolvido e limpo.

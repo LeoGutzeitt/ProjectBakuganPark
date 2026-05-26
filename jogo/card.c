@@ -18,17 +18,33 @@ void DrawPlacedCard(Vector3 position, Color color)
     DrawCubeWires(position, 1.8f, 0.05f, 2.4f, BLACK);
 }
 
-CardPlacement CriarCarta(int owner, int slot)
+const char *CardTypeName(int type)
+{
+    static const char *names[CARD_TYPE_COUNT] = {
+        "Ataque",
+        "Defesa",
+        "Energia",
+        "Armadilha",
+        "Foco",
+        "Suporte"
+    };
+
+    if (type < 0 || type >= CARD_TYPE_COUNT) return "Desconhecida";
+    return names[type];
+}
+
+CardPlacement CriarCarta(int owner, int slot, int type)
 {
     CardPlacement card;
     card.owner = owner;
     card.slot = slot;
+    card.type = type;
     return card;
 }
 
 CardPlacement CartaVazia(void)
 {
-    return CriarCarta(-1, -1);
+    return CriarCarta(-1, -1, -1);
 }
 
 int DonoDaCarta(CardPlacement card)
@@ -39,6 +55,11 @@ int DonoDaCarta(CardPlacement card)
 int SlotDaCarta(CardPlacement card)
 {
     return card.slot;
+}
+
+int TipoDaCarta(CardPlacement card)
+{
+    return card.type;
 }
 
 bool CartaEstaVazia(CardPlacement card)
