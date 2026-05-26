@@ -5,6 +5,7 @@
 
 #include "battle_map.h"
 #include "game_state.h"
+#include "menu.h"
 #include "ui.h"
 #include "monster.h"
 #include "card.h"
@@ -87,6 +88,10 @@ int main(void)
     InitGameState(gridSizeX, gridSizeZ);
 
     int activePlayer = 0;
+    AppScreen screen = APP_SCREEN_MAIN_MENU;
+
+    DeckSetupState deckSetup;
+    InitDeckSetupState(&deckSetup);
 
     int playerCards[2][3];
     int playerMonsters[2][3];
@@ -145,6 +150,59 @@ int main(void)
 
     while (!WindowShouldClose())
     {
+        if (screen == APP_SCREEN_MAIN_MENU)
+        {
+            if (IsKeyPressed(KEY_ENTER))
+            {
+                InitDeckSetupState(&deckSetup);
+                screen = APP_SCREEN_DECK_SETUP;
+            }
+
+            if (IsKeyPressed(KEY_ESCAPE))
+                break;
+
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            DrawMainMenuScreen(screenWidth, screenHeight);
+            EndDrawing();
+            continue;
+        }
+
+        if (screen == APP_SCREEN_DECK_SETUP)
+        {
+            if (UpdateDeckSetupState(&deckSetup))
+            {
+                screen = APP_SCREEN_BATTLE;
+                activePlayer = 0;
+                playerGX = 2;
+                playerGZ = 1;
+                marcadoGX = -1;
+                marcadoGZ = -1;
+                player1Score = 0;
+                player2Score = 0;
+                placeMessage[0] = '\0';
+                battleMessage[0] = '\0';
+                battleResolveTimer = 0;
+                battleResolveGX = -1;
+                battleResolveGZ = -1;
+                battleAwaitingActivation = false;
+                battleActivatedByPlayer[0] = false;
+                battleActivatedByPlayer[1] = false;
+                battleWinnerOwner = -1;
+                monsterPlacement.active = false;
+                transforming = false;
+                transformStage = 0;
+                transformTimer = 0;
+                placedFeedbackTimer = 0;
+            }
+
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            DrawDeckSetupScreen(screenWidth, screenHeight, &deckSetup);
+            EndDrawing();
+            continue;
+        }
+
         // =========================
         // ANIMAÇÃO DO MONSTRO
         // =========================
