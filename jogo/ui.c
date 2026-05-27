@@ -122,6 +122,53 @@ void DrawBattleActivationPrompt(int screenWidth, int screenHeight, bool p0Presen
     }
 }
 
+void DrawPlacementSlotMenu(int screenWidth, int screenHeight, int activePlayer, const int availableSlots[3], int selectedSlot, bool selectingMonster)
+{
+    int menuW = 420;
+    int menuH = 182;
+    int x = (screenWidth - menuW) / 2;
+    int y = (screenHeight - menuH) / 2;
+    Color turnColor = GetTurnColor(activePlayer);
+    const char *title = selectingMonster ? "Escolha o Bakugan" : "Escolha a Carta";
+    const char *subtitle = selectingMonster ? "1-3 escolhe o bakugan | ENTER confirma | ESC cancela" : "1-3 escolhe a carta | ENTER confirma | ESC cancela";
+
+    DrawRectangle(x, y, menuW, menuH, (Color){230,230,230,255});
+    DrawRectangleLines(x, y, menuW, menuH, turnColor);
+    DrawRectangle(x, y, menuW, 4, turnColor);
+
+    DrawText(activePlayer == 0 ? "P1" : "P2", x + 18, y + 10, 20, turnColor);
+    DrawText(title, x + 60, y + 10, 20, BLACK);
+    DrawText(subtitle, x + 18, y + 34, 14, DARKGRAY);
+
+    int slotX = x + 20;
+    int slotY = y + 68;
+    int slotW = 112;
+    int slotH = 72;
+
+    for (int i = 0; i < 3; i++) {
+        bool selected = (i == selectedSlot);
+        bool available = availableSlots[i] != 0;
+        Color fill = available ? (selectingMonster ? Fade(turnColor, 0.8f) : ORANGE) : LIGHTGRAY;
+        Color border = selected ? BLACK : DARKGRAY;
+
+        DrawRectangle(slotX + i * (slotW + 12), slotY, slotW, slotH, fill);
+        DrawRectangleLines(slotX + i * (slotW + 12), slotY, slotW, slotH, border);
+        DrawText(TextFormat("%d", i + 1), slotX + i * (slotW + 12) + 12, slotY + 8, 18, BLACK);
+
+        if (available) {
+            DrawText("Disponivel", slotX + i * (slotW + 12) + 12, slotY + 30, 16, BLACK);
+        } else {
+            DrawText("Usado", slotX + i * (slotW + 12) + 24, slotY + 30, 16, DARKGRAY);
+        }
+
+        if (selected) {
+            DrawRectangleLinesEx((Rectangle){ (float)(slotX + i * (slotW + 12)), (float)slotY, (float)slotW, (float)slotH }, 3.0f, BLACK);
+        }
+    }
+
+    DrawText("A/D troca o slot", x + 18, y + 148, 14, DARKGRAY);
+}
+
 void DrawGameHints(int screenWidth, int screenHeight, const char *placeMessage)
 {
     DrawText("ENTER marca tile | C carta | M monstro", 10, screenHeight - 52, 14, DARKGRAY);

@@ -20,6 +20,42 @@ typedef struct {
     float cursorT;
 } MonsterPlacementChallenge;
 
+typedef enum {
+    PLACEMENT_NONE = 0,
+    PLACEMENT_CARD,
+    PLACEMENT_MONSTER
+} PlacementChoiceType;
+
+typedef struct {
+    bool active;
+    PlacementChoiceType type;
+    int player;
+    int gx;
+    int gz;
+    int slot;
+} PlacementChoiceState;
+
+static int FindFirstAvailableSlot(const int slots[3])
+{
+    for (int slot = 0; slot < 3; slot++) {
+        if (slots[slot]) return slot;
+    }
+
+    return -1;
+}
+
+static int FindNextAvailableSlot(const int slots[3], int currentSlot, int direction)
+{
+    if (currentSlot < 0) currentSlot = 0;
+
+    for (int step = 1; step <= 3; step++) {
+        int nextSlot = (currentSlot + direction * step + 3) % 3;
+        if (slots[nextSlot]) return nextSlot;
+    }
+
+    return currentSlot;
+}
+
 int main(void)
 {
     const int screenWidth = 1980;
@@ -130,6 +166,7 @@ int main(void)
 
     MonsterAnimation monsterAnim = MonsterAnimationCreate();
     MonsterPlacementChallenge monsterPlacement = {0};
+    PlacementChoiceState placementChoice = {0};
     
     int transformStage = 0;
     int transformTimer = 0;
@@ -190,6 +227,9 @@ int main(void)
                 battleActivatedByPlayer[1] = false;
                 battleWinnerOwner = -1;
                 monsterPlacement.active = false;
+                placementChoice.active = false;
+                placementChoice.type = PLACEMENT_NONE;
+                placementChoice.slot = -1;
                 transforming = false;
                 transformStage = 0;
                 transformTimer = 0;
@@ -273,7 +313,7 @@ int main(void)
         // MOVIMENTO
         // =========================
 
-        if (!monsterPlacement.active)
+        if (!monsterPlacement.active && !placementChoice.active)
         {
             if (IsKeyPressed(KEY_S)) playerGX++;
             if (IsKeyPressed(KEY_W)) playerGX--;
@@ -290,13 +330,13 @@ int main(void)
         // MARCAR TILE
         // =========================
 
-        if (!monsterPlacement.active && IsKeyPressed(KEY_ENTER))
+        if (!monsterPlacement.active && !placementChoice.active && IsKeyPressed(KEY_ENTER))
         {
             marcadoGX = playerGX;
             marcadoGZ = playerGZ;
         }
 
-        if (!monsterPlacement.active && IsKeyPressed(KEY_ESCAPE))
+        if (!monsterPlacement.active && !placementChoice.active && IsKeyPressed(KEY_ESCAPE))
         {
             marcadoGX = -1;
             marcadoGZ = -1;
@@ -308,6 +348,76 @@ int main(void)
 
         if (placedFeedbackTimer > 0)
             placedFeedbackTimer--;
+
+        GetPlayerHands(playerCards, playerMonsters);
+
+        if (placementChoice.active)
+        {
+            const int *slots = (placementChoice.type == PLACEMENT_CARD)
+                ? playerCards[placementChoice.player]
+                : playerMonsters[placementChoice.player];
+
+            if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
+                placementChoice.slot = FindNextAvailableSlot(slots, placementChoice.slot, -1);
+            }
+            if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
+                placementChoice.slot = FindNextAvailableSlot(slots, placementChoice.slot, 1);
+            }
+
+            for (int digit = 0; digit < 3; digit++) {
+                if (IsKeyPressed(KEY_ONE + digit) && slots[digit]) {
+                    placementChoice.slot = digit;
+                }
+            }
+
+            if (IsKeyPressed(KEY_ESCAPE)) {
+                placementChoice.active = false;
+                placementChoice.type = PLACEMENT_NONE;
+                placementChoice.slot = -1;
+                snprintf(placeMessage, sizeof(placeMessage) - 1, "Selecao cancelada");
+                placedFeedbackTimer = 60;
+            }
+            else if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+                if (placementChoice.slot < 0 || !slots[placementChoice.slot]) {
+                    snprintf(placeMessage, sizeof(placeMessage) - 1, "Escolha um slot disponivel");
+                    placedFeedbackTimer = 60;
+                }
+                else if (placementChoice.type == PLACEMENT_CARD) {
+                    if (PlaceCardAt(placementChoice.gx, placementChoice.gz, placementChoice.player, placementChoice.slot, deckSetup.cardTypes[placementChoice.player][placementChoice.slot]))
+                    {
+                        RemovePlayerCardFromHand(placementChoice.player, placementChoice.slot);
+                        snprintf(placeMessage, sizeof(placeMessage) - 1, "Carta colocada");
+                        placedFeedbackTimer = 60;
+                        marcadoGX = -1;
+                        marcadoGZ = -1;
+                        activePlayer ^= 1;
+                    }
+
+                    placementChoice.active = false;
+                    placementChoice.type = PLACEMENT_NONE;
+                    placementChoice.slot = -1;
+                }
+                else if (placementChoice.type == PLACEMENT_MONSTER) {
+                    monsterPlacement.active = true;
+                    monsterPlacement.player = placementChoice.player;
+                    monsterPlacement.gx = placementChoice.gx;
+                    monsterPlacement.gz = placementChoice.gz;
+                    monsterPlacement.slot = placementChoice.slot;
+                    monsterPlacement.chosenSide = MONSTER_SIDE_LEFT;
+                    monsterPlacement.cursorT = 0.0f;
+
+                    snprintf(
+                        placeMessage,
+                        sizeof(placeMessage) - 1,
+                        "A/D escolhe o lado | ESPACO confirma"
+                    );
+
+                    placementChoice.active = false;
+                    placementChoice.type = PLACEMENT_NONE;
+                    placementChoice.slot = -1;
+                }
+            }
+        }
 
         if (monsterPlacement.active)
         {
@@ -407,65 +517,67 @@ int main(void)
         // =========================
 
         if (!monsterPlacement.active &&
+            !placementChoice.active &&
             battleResolveTimer == 0 &&
             marcadoGX != -1 &&
             marcadoGZ != -1 &&
             !battleAwaitingActivation)
         {
-            GetPlayerHands(playerCards, playerMonsters);
-
             bool canPlaceMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
 
             if (IsKeyPressed(KEY_C))
             {
-                for (int s = 0; s < 3; s++)
-                {
-                    if (playerCards[activePlayer][s])
-                    {
-                        if (PlaceCardAt(marcadoGX, marcadoGZ, activePlayer, s, deckSetup.cardTypes[activePlayer][s]))
-                        {
-                            RemovePlayerCardFromHand(activePlayer, s);
-                            snprintf(placeMessage, sizeof(placeMessage) - 1, "Carta colocada");
-                            placedFeedbackTimer = 60;
-                            marcadoGX = -1;
-                            marcadoGZ = -1;
-                            activePlayer ^= 1;
-                        }
+                int chosenSlot = FindFirstAvailableSlot(playerCards[activePlayer]);
 
-                        break;
-                    }
+                if (chosenSlot < 0) {
+                    snprintf(placeMessage, sizeof(placeMessage) - 1, "Nao ha cartas disponiveis");
+                    placedFeedbackTimer = 60;
+                }
+                else if (!CanPlaceCardAt(marcadoGX, marcadoGZ)) {
+                    snprintf(placeMessage, sizeof(placeMessage) - 1, "Nao pode colocar carta nesse tile");
+                    placedFeedbackTimer = 60;
+                }
+                else {
+                    placementChoice.active = true;
+                    placementChoice.type = PLACEMENT_CARD;
+                    placementChoice.player = activePlayer;
+                    placementChoice.gx = marcadoGX;
+                    placementChoice.gz = marcadoGZ;
+                    placementChoice.slot = chosenSlot;
+                    snprintf(placeMessage, sizeof(placeMessage) - 1, "Escolha o slot da carta");
+                    placedFeedbackTimer = 60;
                 }
             }
 
             if (IsKeyPressed(KEY_M))
             {
+                int chosenSlot = FindFirstAvailableSlot(playerMonsters[activePlayer]);
+
                 if (!canPlaceMonster)
                 {
                     strncpy(placeMessage, "Coloque uma carta primeiro!", sizeof(placeMessage) - 1);
+                    placedFeedbackTimer = 60;
+                }
+                else if (!TileHasCard(marcadoGX, marcadoGZ))
+                {
+                    snprintf(placeMessage, sizeof(placeMessage) - 1, "Escolha um tile com carta");
+                    placedFeedbackTimer = 60;
+                }
+                else if (chosenSlot < 0)
+                {
+                    snprintf(placeMessage, sizeof(placeMessage) - 1, "Nao ha bakugans disponiveis");
+                    placedFeedbackTimer = 60;
                 }
                 else
                 {
-                    for (int s = 0; s < 3; s++)
-                    {
-                        if (playerMonsters[activePlayer][s])
-                        {
-                            monsterPlacement.active = true;
-                            monsterPlacement.player = activePlayer;
-                            monsterPlacement.gx = marcadoGX;
-                            monsterPlacement.gz = marcadoGZ;
-                            monsterPlacement.slot = s;
-                            monsterPlacement.chosenSide = MONSTER_SIDE_LEFT;
-                            monsterPlacement.cursorT = 0.0f;
-
-                            snprintf(
-                                placeMessage,
-                                sizeof(placeMessage) - 1,
-                                "A/D escolhe o lado | ESPACO confirma"
-                            );
-
-                            break;
-                        }
-                    }
+                    placementChoice.active = true;
+                    placementChoice.type = PLACEMENT_MONSTER;
+                    placementChoice.player = activePlayer;
+                    placementChoice.gx = marcadoGX;
+                    placementChoice.gz = marcadoGZ;
+                    placementChoice.slot = chosenSlot;
+                    snprintf(placeMessage, sizeof(placeMessage) - 1, "Escolha o bakugan do slot");
+                    placedFeedbackTimer = 60;
                 }
             }
         }
@@ -646,8 +758,6 @@ int main(void)
         int hudY = 10;
         DrawScoreBoard(screenWidth, hudY, player1Score, player2Score, iconP1, iconP2);
 
-        GetPlayerHands(playerCards, playerMonsters);
-
         DrawBottomMenu(screenWidth, screenHeight, activePlayer, playerCards, playerMonsters);
 
         if (battleAwaitingActivation && battleResolveGX != -1)
@@ -676,6 +786,22 @@ int main(void)
         {
             bool canPickMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
             DrawSelectionMenu(screenWidth, screenHeight, canPickMonster, activePlayer);
+        }
+
+        if (placementChoice.active)
+        {
+            const int *slots = (placementChoice.type == PLACEMENT_CARD)
+                ? playerCards[placementChoice.player]
+                : playerMonsters[placementChoice.player];
+
+            DrawPlacementSlotMenu(
+                screenWidth,
+                screenHeight,
+                placementChoice.player,
+                slots,
+                placementChoice.slot,
+                placementChoice.type == PLACEMENT_MONSTER
+            );
         }
 
         DrawBattleFeedbackOverlay(screenWidth, screenHeight, battleMessage, battleResolveTimer, placedFeedbackTimer);
