@@ -14,45 +14,45 @@ typedef struct {
 } TileEntity;
 
 // Inicializa o estado do jogo para o grid
-void InitGameState(int gridX, int gridZ);
-void FreeGameState(void);
+void InicializarEstadoJogo(int gridX, int gridZ);
+void LiberarEstadoJogo(void);
 
 // Gerenciamento da mão dos jogadores (0 ou 1)
-void InitPlayerHands(void);
-bool PlayerHasCardInHand(int player);
-bool PlayerHasMonsterInHand(int player);
-int PlayerCardSlotAvailable(int player);
+void InicializarMaoJogadores(void);
+bool JogadorTemCartaNaMao(int player);
+bool JogadorTemMonstroNaMao(int player);
+int SlotCartaDisponivelJogador(int player);
 
 // Coloca entidades no mapa; retorna true em caso de sucesso
-bool CanPlaceCardAt(int gx, int gz);
-bool PlaceCardAt(int gx, int gz, int owner, int slot, int type);
-bool PlaceMonsterAt(int gx, int gz, int owner, int slot, int type, int element, MonsterSide side);
+bool PodeColocarCartaEm(int gx, int gz);
+bool ColocarCartaEm(int gx, int gz, int owner, int slot, int type);
+bool ColocarMonstroEm(int gx, int gz, int owner, int slot, int type, int element, MonsterSide side);
 
 // Resolve a batalha quando um tile tem 2 monstros.
 // Retorna true quando o tile foi resolvido e limpo.
-bool ResolveTileBattle(int gx, int gz, int *outWinnerOwner);
+bool ResolverBatalhaNoTile(int gx, int gz, int *outWinnerOwner);
 // Determina o vencedor de uma batalha sem limpar o tile (útil para animações antes
 // de confirmar/limpar). Retorna true se havia batalha e escreve o dono vencedor em
 // outWinnerOwner (se não for NULL).
-bool PeekTileBattleWinner(int gx, int gz, int *outWinnerOwner);
-void ClearTile(int gx, int gz);
+bool VerificarVencedorBatalhaNoTile(int gx, int gz, int *outWinnerOwner);
+void LimparTile(int gx, int gz);
 
 // Consultas
-int CountPlayerCardsOnMap(int player);
-int CountCardsOnMap(void);
-TileEntity GetTileAt(int gx, int gz);
-bool TileHasCard(int gx, int gz);
-int GetTileMonsterCount(int gx, int gz);
-bool RemoveTileMonsterByOwnerSlot(int gx, int gz, int owner, int slot);
+int ContarCartasJogadorNoMapa(int player);
+int ContarCartasNoMapa(void);
+TileEntity ObterTileEm(int gx, int gz);
+bool TileTemCarta(int gx, int gz);
+int ContarMonstrosNoTile(int gx, int gz);
+bool RemoverMonstroTilePorDonoSlot(int gx, int gz, int owner, int slot);
 
-int GetGridSizeX(void);
-int GetGridSizeZ(void);
+int ObterTamanhoGridX(void);
+int ObterTamanhoGridZ(void);
 
 // Remove da mão quando colocado
-void RemovePlayerCardFromHand(int player, int slot);
-void RemovePlayerMonsterFromHand(int player, int slot);
+void RemoverCartaJogadorDaMao(int player, int slot);
+void RemoverMonstroJogadorDaMao(int player, int slot);
 
 // Copia as mãos atuais para os vetores informados (devem ter tamanho [2][3])
-void GetPlayerHands(int outCards[2][3], int outMonsters[2][3]);
+void ObterMaosJogadores(int outCards[2][3], int outMonsters[2][3]);
 
 #endif // fim de GAME_STATE_H

@@ -15,7 +15,7 @@ static TileEntity *GetTilePtr(int gx, int gz)
     return &g_tiles[gz * g_gridX + gx];
 }
 
-void InitGameState(int gridX, int gridZ)
+void InicializarEstadoJogo(int gridX, int gridZ)
 {
     g_gridX = gridX;
     g_gridZ = gridZ;
@@ -27,16 +27,16 @@ void InitGameState(int gridX, int gridZ)
             g_tiles[i].monsters[m] = EmptyMonsterPlacement();
         }
     }
-    InitPlayerHands();
+    InicializarMaoJogadores();
 }
 
-void FreeGameState(void)
+void LiberarEstadoJogo(void)
 {
     if (g_tiles) free(g_tiles);
     g_tiles = NULL;
 }
 
-void InitPlayerHands(void)
+void InicializarMaoJogadores(void)
 {
     for (int p = 0; p < 2; p++) {
         for (int s = 0; s < MAX_HAND_SLOTS; s++) {
@@ -46,32 +46,32 @@ void InitPlayerHands(void)
     }
 }
 
-bool PlayerHasCardInHand(int player)
+bool JogadorTemCartaNaMao(int player)
 {
     for (int s = 0; s < MAX_HAND_SLOTS; s++) if (g_playerCards[player][s]) return true;
     return false;
 }
 
-bool PlayerHasMonsterInHand(int player)
+bool JogadorTemMonstroNaMao(int player)
 {
     for (int s = 0; s < MAX_HAND_SLOTS; s++) if (g_playerMonsters[player][s]) return true;
     return false;
 }
 
-int PlayerCardSlotAvailable(int player)
+int SlotCartaDisponivelJogador(int player)
 {
     for (int s = 0; s < MAX_HAND_SLOTS; s++) if (g_playerCards[player][s]) return s;
     return -1;
 }
 
-bool CanPlaceCardAt(int gx, int gz)
+bool PodeColocarCartaEm(int gx, int gz)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
     if (tile->card.owner != -1) return false;
 
     // Limite global de cartas no tabuleiro.
-    if (CountCardsOnMap() >= 4) return false;
+    if (ContarCartasNoMapa() >= 4) return false;
 
     // Primeira carta da partida pode ser colocada em qualquer tile vazio.
     bool hasAnyCard = false;
@@ -100,16 +100,16 @@ bool CanPlaceCardAt(int gx, int gz)
     return false;
 }
 
-bool PlaceCardAt(int gx, int gz, int owner, int slot, int type)
+bool ColocarCartaEm(int gx, int gz, int owner, int slot, int type)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
-    if (!CanPlaceCardAt(gx, gz)) return false;
+    if (!PodeColocarCartaEm(gx, gz)) return false;
     tile->card = CriarCarta(owner, slot, type);
     return true;
 }
 
-bool PlaceMonsterAt(int gx, int gz, int owner, int slot, int type, int element, MonsterSide side)
+bool ColocarMonstroEm(int gx, int gz, int owner, int slot, int type, int element, MonsterSide side)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
@@ -122,7 +122,7 @@ bool PlaceMonsterAt(int gx, int gz, int owner, int slot, int type, int element, 
     return true;
 }
 
-void ClearTile(int gx, int gz)
+void LimparTile(int gx, int gz)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return;
@@ -133,7 +133,7 @@ void ClearTile(int gx, int gz)
     }
 }
 
-bool ResolveTileBattle(int gx, int gz, int *outWinnerOwner)
+bool ResolverBatalhaNoTile(int gx, int gz, int *outWinnerOwner)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
@@ -154,11 +154,11 @@ bool ResolveTileBattle(int gx, int gz, int *outWinnerOwner)
     }
 
     if (outWinnerOwner) *outWinnerOwner = winnerOwner;
-    ClearTile(gx, gz);
+    LimparTile(gx, gz);
     return true;
 }
 
-bool PeekTileBattleWinner(int gx, int gz, int *outWinnerOwner)
+bool VerificarVencedorBatalhaNoTile(int gx, int gz, int *outWinnerOwner)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
@@ -182,7 +182,7 @@ bool PeekTileBattleWinner(int gx, int gz, int *outWinnerOwner)
     return true;
 }
 
-int CountPlayerCardsOnMap(int player)
+int ContarCartasJogadorNoMapa(int player)
 {
     int c = 0;
     for (int z = 0; z < g_gridZ; z++) {
@@ -194,7 +194,7 @@ int CountPlayerCardsOnMap(int player)
     return c;
 }
 
-int CountCardsOnMap(void)
+int ContarCartasNoMapa(void)
 {
     int c = 0;
     for (int z = 0; z < g_gridZ; z++) {
@@ -206,7 +206,7 @@ int CountCardsOnMap(void)
     return c;
 }
 
-TileEntity GetTileAt(int gx, int gz)
+TileEntity ObterTileEm(int gx, int gz)
 {
     TileEntity empty;
     empty.card = CartaVazia();
@@ -220,21 +220,21 @@ TileEntity GetTileAt(int gx, int gz)
     return *tile;
 }
 
-bool TileHasCard(int gx, int gz)
+bool TileTemCarta(int gx, int gz)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
     return tile->card.owner != -1;
 }
 
-int GetTileMonsterCount(int gx, int gz)
+int ContarMonstrosNoTile(int gx, int gz)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return 0;
     return tile->monsterCount;
 }
 
-bool RemoveTileMonsterByOwnerSlot(int gx, int gz, int owner, int slot)
+bool RemoverMonstroTilePorDonoSlot(int gx, int gz, int owner, int slot)
 {
     TileEntity *tile = GetTilePtr(gx, gz);
     if (!tile) return false;
@@ -258,17 +258,17 @@ bool RemoveTileMonsterByOwnerSlot(int gx, int gz, int owner, int slot)
     return false;
 }
 
-int GetGridSizeX(void) { return g_gridX; }
-int GetGridSizeZ(void) { return g_gridZ; }
+int ObterTamanhoGridX(void) { return g_gridX; }
+int ObterTamanhoGridZ(void) { return g_gridZ; }
 
-void RemovePlayerCardFromHand(int player, int slot)
+void RemoverCartaJogadorDaMao(int player, int slot)
 {
     if (player < 0 || player > 1) return;
     if (slot < 0 || slot >= MAX_HAND_SLOTS) return;
     g_playerCards[player][slot] = 0;
 }
 
-void RemovePlayerMonsterFromHand(int player, int slot)
+void RemoverMonstroJogadorDaMao(int player, int slot)
 {
     if (player < 0 || player > 1) return;
     if (slot < 0 || slot >= MAX_HAND_SLOTS) return;
@@ -290,7 +290,7 @@ void RemovePlayerMonsterFromHand(int player, int slot)
     }
 }
 
-void GetPlayerHands(int outCards[2][3], int outMonsters[2][3])
+void ObterMaosJogadores(int outCards[2][3], int outMonsters[2][3])
 {
     if (!outCards || !outMonsters) return;
     for (int p = 0; p < 2; p++) {

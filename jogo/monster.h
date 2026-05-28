@@ -59,11 +59,11 @@ bool MonsterPlacementIsEmpty(MonsterPlacement monster);
 const char *BakuganTypeName(int type);
 const char *BakuganElementName(int element);
 
-MonsterAnimation MonsterAnimationCreate(void);
-void MonsterAnimationStart(MonsterAnimation *animation, MonsterSide side, Vector3 start, Vector3 target);
-bool MonsterAnimationUpdate(MonsterAnimation *animation);
-void UpdateMonsterTransformation(bool *transforming, int *transformTimer, int *transformStage);
-Texture2D SelectMonsterStageTexture(Texture2D stage0, Texture2D stage1, Texture2D stage2, int transformStage);
-void DrawMonsterBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, MonsterSide side);
+MonsterAnimation CriarAnimacaoMonstro(void);
+void IniciarAnimacaoMonstro(MonsterAnimation *animation, MonsterSide side, Vector3 start, Vector3 target);
+bool AtualizarAnimacaoMonstro(MonsterAnimation *animation);
+void AtualizarTransformacaoMonstro(bool *transforming, int *transformTimer, int *transformStage);
+Texture2D SelecionarTexturaEstagioMonstro(Texture2D stage0, Texture2D stage1, Texture2D stage2, int transformStage);
+void DesenharMonstroBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, MonsterSide side);
 
 #endif // fim de MONSTER_H

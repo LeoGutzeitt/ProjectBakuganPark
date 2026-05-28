@@ -31,14 +31,14 @@ const char *BakuganElementName(int element)
     return names[element];
 }
 
-MonsterAnimation MonsterAnimationCreate(void)
+MonsterAnimation CriarAnimacaoMonstro(void)
 {
     MonsterAnimation animation = {0};
     animation.side = MONSTER_SIDE_LEFT;
     return animation;
 }
 
-void MonsterAnimationStart(MonsterAnimation *animation, MonsterSide side, Vector3 start, Vector3 target)
+void IniciarAnimacaoMonstro(MonsterAnimation *animation, MonsterSide side, Vector3 start, Vector3 target)
 {
     if (!animation) return;
     animation->side = side;
@@ -48,7 +48,7 @@ void MonsterAnimationStart(MonsterAnimation *animation, MonsterSide side, Vector
     animation->active = true;
 }
 
-bool MonsterAnimationUpdate(MonsterAnimation *animation)
+bool AtualizarAnimacaoMonstro(MonsterAnimation *animation)
 {
     if (!animation || !animation->active) return false;
 
@@ -74,7 +74,7 @@ bool MonsterAnimationUpdate(MonsterAnimation *animation)
     return false;
 }
 
-void UpdateMonsterTransformation(bool *transforming, int *transformTimer, int *transformStage)
+void AtualizarTransformacaoMonstro(bool *transforming, int *transformTimer, int *transformStage)
 {
     if (!transforming || !transformTimer || !transformStage || !*transforming) return;
 
@@ -93,14 +93,14 @@ void UpdateMonsterTransformation(bool *transforming, int *transformTimer, int *t
     }
 }
 
-Texture2D SelectMonsterStageTexture(Texture2D stage0, Texture2D stage1, Texture2D stage2, int transformStage)
+Texture2D SelecionarTexturaEstagioMonstro(Texture2D stage0, Texture2D stage1, Texture2D stage2, int transformStage)
 {
     if (transformStage == 0) return stage0;
     if (transformStage == 1) return stage1;
     return stage2;
 }
 
-void DrawMonsterBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, MonsterSide side)
+void DesenharMonstroBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, MonsterSide side)
 {
     Rectangle source = { 0, 0, (float)texture.width, (float)texture.height };
 

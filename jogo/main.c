@@ -164,12 +164,12 @@ static bool TryMoveCollidedMonsterToAdjacentCard(int sourceGX, int sourceGZ, int
         int nz = sourceGZ + dirs[i][1];
 
         if (nx < 0 || nz < 0 || nx >= gridX || nz >= gridZ) continue;
-        if (!TileHasCard(nx, nz)) continue;
+        if (!TileTemCarta(nx, nz)) continue;
 
-        TileEntity neighbor = GetTileAt(nx, nz);
+        TileEntity neighbor = ObterTileEm(nx, nz);
         if (neighbor.monsterCount != 0) continue;
 
-        if (PlaceMonsterAt(
+        if (ColocarMonstroEm(
                 nx,
                 nz,
                 collided.owner,
@@ -178,7 +178,7 @@ static bool TryMoveCollidedMonsterToAdjacentCard(int sourceGX, int sourceGZ, int
                 collided.element,
                 collided.side))
         {
-            RemoveTileMonsterByOwnerSlot(sourceGX, sourceGZ, collided.owner, collided.slot);
+            RemoverMonstroTilePorDonoSlot(sourceGX, sourceGZ, collided.owner, collided.slot);
             return true;
         }
     }
@@ -251,7 +251,7 @@ int main(void)
     // GAME STATE
     // =========================
 
-    InitGameState(gridSizeX, gridSizeZ);
+    InicializarEstadoJogo(gridSizeX, gridSizeZ);
 
     int activePlayer = 0;
     AppScreen screen = APP_SCREEN_MAIN_MENU;
@@ -293,8 +293,7 @@ int main(void)
     // =========================
     // ANIMAÇÃO
     // =========================
-
-    MonsterAnimation monsterAnim = MonsterAnimationCreate();
+    MonsterAnimation monsterAnim = CriarAnimacaoMonstro();
     MonsterPlacementChallenge monsterPlacement = {0};
     PlacementChoiceState placementChoice = {0};
     bool pendingKnockout = false;
@@ -381,7 +380,7 @@ int main(void)
         // ANIMAÇÃO DO MONSTRO
         // =========================
 
-        if (MonsterAnimationUpdate(&monsterAnim))
+        if (AtualizarAnimacaoMonstro(&monsterAnim))
         {
             if (pendingKnockout)
             {
@@ -413,7 +412,7 @@ int main(void)
         // TRANSFORMAÇÃO
         // =========================
 
-        UpdateMonsterTransformation(&transforming, &transformTimer, &transformStage);
+        AtualizarTransformacaoMonstro(&transforming, &transformTimer, &transformStage);
 
         // =========================
         // RESOLVE BATALHA
@@ -427,13 +426,13 @@ int main(void)
                 battleResolveGX != -1 &&
                 battleResolveGZ != -1)
             {
-                TileEntity battleTile = GetTileAt(battleResolveGX, battleResolveGZ);
+                TileEntity battleTile = ObterTileEm(battleResolveGX, battleResolveGZ);
                 MonsterPlacement m0 = battleTile.monsters[0];
                 MonsterPlacement m1 = battleTile.monsters[1];
 
                 int winnerOwner = -1;
 
-                if (ResolveTileBattle(battleResolveGX, battleResolveGZ, &winnerOwner))
+                if (ResolverBatalhaNoTile(battleResolveGX, battleResolveGZ, &winnerOwner))
                 {
                     if (winnerOwner == 0) player1Score++;
                     else if (winnerOwner == 1) player2Score++;
@@ -504,7 +503,7 @@ int main(void)
         if (placedFeedbackTimer > 0)
             placedFeedbackTimer--;
 
-        GetPlayerHands(playerCards, playerMonsters);
+        ObterMaosJogadores(playerCards, playerMonsters);
 
         if (placementChoice.active)
         {
@@ -538,9 +537,9 @@ int main(void)
                     placedFeedbackTimer = 60;
                 }
                 else if (placementChoice.type == PLACEMENT_CARD) {
-                    if (PlaceCardAt(placementChoice.gx, placementChoice.gz, placementChoice.player, placementChoice.slot, deckSetup.cardTypes[placementChoice.player][placementChoice.slot]))
+                    if (ColocarCartaEm(placementChoice.gx, placementChoice.gz, placementChoice.player, placementChoice.slot, deckSetup.cardTypes[placementChoice.player][placementChoice.slot]))
                     {
-                        RemovePlayerCardFromHand(placementChoice.player, placementChoice.slot);
+                        RemoverCartaJogadorDaMao(placementChoice.player, placementChoice.slot);
                         snprintf(placeMessage, sizeof(placeMessage) - 1, "Carta colocada");
                         placedFeedbackTimer = 60;
                         marcadoGX = -1;
@@ -598,7 +597,7 @@ int main(void)
                         ? MONSTER_SIDE_RIGHT
                         : MONSTER_SIDE_LEFT);
 
-                TileEntity targetBeforePlacement = GetTileAt(monsterPlacement.gx, monsterPlacement.gz);
+                TileEntity targetBeforePlacement = ObterTileEm(monsterPlacement.gx, monsterPlacement.gz);
                 MonsterPlacement collidedMonster = EmptyMonsterPlacement();
                 bool sideConflict = TileHasMonsterOnSide(targetBeforePlacement, finalSide, &collidedMonster);
 
@@ -633,7 +632,7 @@ int main(void)
                     }
                 }
 
-                if (PlaceMonsterAt(
+                if (ColocarMonstroEm(
                         monsterPlacement.gx,
                         monsterPlacement.gz,
                         monsterPlacement.player,
@@ -657,7 +656,7 @@ int main(void)
                     int randomX = GetRandomValue(-10, 10);
                     int randomZ = GetRandomValue(-10, 10);
 
-                    TileEntity placedTile = GetTileAt(monsterPlacement.gx, monsterPlacement.gz);
+                    TileEntity placedTile = ObterTileEm(monsterPlacement.gx, monsterPlacement.gz);
                     int stackIndex = 0;
                     for (int i = 0; i < placedTile.monsterCount; i++) {
                         if (placedTile.monsters[i].owner == monsterPlacement.player &&
@@ -679,18 +678,18 @@ int main(void)
                         animationTarget = ComputeKnockoutTarget(cardBlockTarget.x, cardBlockTarget.z, offsetX, offsetZ);
                     }
 
-                    MonsterAnimationStart(
+                    IniciarAnimacaoMonstro(
                         &monsterAnim,
                         finalSide,
                         (Vector3){ targetX + randomX, 4.0f, targetZ + randomZ },
                         animationTarget
                     );
 
-                    RemovePlayerMonsterFromHand(monsterPlacement.player, monsterPlacement.slot);
+                    RemoverMonstroJogadorDaMao(monsterPlacement.player, monsterPlacement.slot);
 
                     if (knockedOut)
                     {
-                        RemoveTileMonsterByOwnerSlot(
+                        RemoverMonstroTilePorDonoSlot(
                             monsterPlacement.gx,
                             monsterPlacement.gz,
                             monsterPlacement.player,
@@ -708,15 +707,11 @@ int main(void)
                         battleWinnerOwner = -1;
                     }
 
-                    int monsterCount = GetTileMonsterCount(monsterPlacement.gx, monsterPlacement.gz);
+                    int monsterCount = ContarMonstrosNoTile(monsterPlacement.gx, monsterPlacement.gz);
 
                     if (knockedOut)
                     {
-                        snprintf(
-                            placeMessage,
-                            sizeof(placeMessage) - 1,
-                            "Bakugan no limite! Risco de queda aplicado"
-                        );
+                        snprintf(placeMessage, sizeof(placeMessage) - 1, "Bakugan caiu para fora!");
                         placedFeedbackTimer = 60;
                     }
                     else if (collisionDisplaced)
@@ -748,7 +743,7 @@ int main(void)
                         battleActivatedByPlayer[0] = false;
                         battleActivatedByPlayer[1] = false;
                         battleWinnerOwner = -1;
-                        PeekTileBattleWinner(battleResolveGX, battleResolveGZ, &battleWinnerOwner);
+                        VerificarVencedorBatalhaNoTile(battleResolveGX, battleResolveGZ, &battleWinnerOwner);
                     }
 
                     monsterPlacement.active = false;
@@ -775,7 +770,7 @@ int main(void)
             marcadoGZ != -1 &&
             !battleAwaitingActivation)
         {
-            bool canPlaceMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
+            bool canPlaceMonster = (ContarCartasJogadorNoMapa(activePlayer) > 0);
 
             if (IsKeyPressed(KEY_C))
             {
@@ -785,7 +780,7 @@ int main(void)
                     snprintf(placeMessage, sizeof(placeMessage) - 1, "Nao ha cartas disponiveis");
                     placedFeedbackTimer = 60;
                 }
-                else if (!CanPlaceCardAt(marcadoGX, marcadoGZ)) {
+                else if (!PodeColocarCartaEm(marcadoGX, marcadoGZ)) {
                     snprintf(placeMessage, sizeof(placeMessage) - 1, "Nao pode colocar carta nesse tile");
                     placedFeedbackTimer = 60;
                 }
@@ -810,7 +805,7 @@ int main(void)
                     strncpy(placeMessage, "Coloque uma carta primeiro!", sizeof(placeMessage) - 1);
                     placedFeedbackTimer = 60;
                 }
-                else if (!TileHasCard(marcadoGX, marcadoGZ))
+                else if (!TileTemCarta(marcadoGX, marcadoGZ))
                 {
                     snprintf(placeMessage, sizeof(placeMessage) - 1, "Escolha um tile com carta");
                     placedFeedbackTimer = 60;
@@ -842,7 +837,7 @@ int main(void)
         {
             if (IsKeyPressed(KEY_F))
             {
-                TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
+                TileEntity bt = ObterTileEm(battleResolveGX, battleResolveGZ);
                 for (int m = 0; m < bt.monsterCount; m++)
                 {
                     if (bt.monsters[m].owner == 0) { battleActivatedByPlayer[0] = true; break; }
@@ -851,14 +846,14 @@ int main(void)
 
             if (IsKeyPressed(KEY_L))
             {
-                TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
+                TileEntity bt = ObterTileEm(battleResolveGX, battleResolveGZ);
                 for (int m = 0; m < bt.monsterCount; m++)
                 {
                     if (bt.monsters[m].owner == 1) { battleActivatedByPlayer[1] = true; break; }
                 }
             }
 
-            TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
+            TileEntity bt = ObterTileEm(battleResolveGX, battleResolveGZ);
             bool needP0 = false;
             bool needP1 = false;
 
@@ -922,11 +917,11 @@ int main(void)
         Vector3 cardPos = { playerX, 0.5f, playerZ };
         DrawModel(cardModel, cardPos, 1.0f, WHITE);
 
-        for (int gz = 0; gz < GetGridSizeZ(); gz++)
+        for (int gz = 0; gz < ObterTamanhoGridZ(); gz++)
         {
-            for (int gx = 0; gx < GetGridSizeX(); gx++)
+            for (int gx = 0; gx < ObterTamanhoGridX(); gx++)
             {
-                TileEntity te = GetTileAt(gx, gz);
+                TileEntity te = ObterTileEm(gx, gz);
                 float ex, ez;
 
                 GridToWorld(gx, gz, tileWidth, tileDepth, offsetX, offsetZ, &ex, &ez);
@@ -981,7 +976,7 @@ int main(void)
                                 }
                             }
 
-                            DrawMonsterBillboard(
+                            DesenharMonstroBillboard(
                                 camera,
                                 currentTexture,
                                 monsterPos,
@@ -996,7 +991,7 @@ int main(void)
 
         if (monsterAnim.active)
         {
-            DrawMonsterBillboard(
+            DesenharMonstroBillboard(
                 camera,
                 currentTexture,
                 monsterAnim.position,
@@ -1014,7 +1009,7 @@ int main(void)
 
         if (battleAwaitingActivation && battleResolveGX != -1)
         {
-            TileEntity bt = GetTileAt(battleResolveGX, battleResolveGZ);
+            TileEntity bt = ObterTileEm(battleResolveGX, battleResolveGZ);
             bool p0present = false;
             bool p1present = false;
 
@@ -1036,7 +1031,7 @@ int main(void)
 
         if (marcadoGX != -1 && marcadoGZ != -1)
         {
-            bool canPickMonster = (CountPlayerCardsOnMap(activePlayer) > 0);
+            bool canPickMonster = (ContarCartasJogadorNoMapa(activePlayer) > 0);
             DrawSelectionMenu(screenWidth, screenHeight, canPickMonster, activePlayer);
         }
 
@@ -1097,7 +1092,7 @@ int main(void)
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
 
-    FreeGameState();
+    LiberarEstadoJogo();
     CloseWindow();
 
     return 0;
