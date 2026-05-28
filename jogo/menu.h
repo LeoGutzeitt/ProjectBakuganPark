@@ -4,10 +4,12 @@
 #include <stdbool.h>
 
 typedef enum {
-    APP_SCREEN_MAIN_MENU = 0,
-    APP_SCREEN_DECK_SETUP = 1,
-    APP_SCREEN_BATTLE = 2
-} AppScreen;
+    TELA_MENU_PRINCIPAL = 0,
+    TELA_PREPARACAO_DECK = 1,
+    TELA_BATALHA = 2,
+    TELA_VITORIA = 3,
+    TELA_ESTATISTICAS = 4
+} TelaAplicacao;
 
 typedef struct {
     int activePlayer;
@@ -18,11 +20,12 @@ typedef struct {
     int monsterTypes[2][3];
     int monsterElements[2][3];
     int awaitingElementSlot; // -1 when not awaiting
-} DeckSetupState;
+} EstadoPreparacaoDeck;
 
-void InitDeckSetupState(DeckSetupState *state);
-bool UpdateDeckSetupState(DeckSetupState *state);
-void DrawMainMenuScreen(int screenWidth, int screenHeight);
-void DrawDeckSetupScreen(int screenWidth, int screenHeight, const DeckSetupState *state);
+void InicializarEstadoPreparacaoDeck(EstadoPreparacaoDeck *state);
+bool AtualizarEstadoPreparacaoDeck(EstadoPreparacaoDeck *state);
+void DesenharTelaMenuPrincipal(int screenWidth, int screenHeight);
+void DesenharTelaPreparacaoDeck(int screenWidth, int screenHeight, const EstadoPreparacaoDeck *state);
+void DesenharTelaVitoria(int screenWidth, int screenHeight, int vencedorJogador, int pontuacaoJogador1, int pontuacaoJogador2);
 
 #endif // MENU_H

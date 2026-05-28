@@ -4,7 +4,7 @@
 #include "raylib.h"
 
 // Desenha o mapa de batalha (chão, grid e tile marcado)
-void DrawBattleMap(int gridSizeX, int gridSizeZ, float tileWidth, float tileDepth, float offsetX, float offsetZ, int marcadoGX, int marcadoGZ);
+void DrawBattleMap(int gridSizeX, int gridSizeZ, float tileWidth, float tileDepth, float offsetX, float offsetZ, int marcadoGX, int marcadoGZ, bool battleInProgress);
 
 // Converte coordenadas do grid para coordenadas do mundo (centro do tile)
 void GridToWorld(int gx, int gz, float tileWidth, float tileDepth, float offsetX, float offsetZ, float *outX, float *outZ);

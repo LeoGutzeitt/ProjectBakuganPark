@@ -6,13 +6,13 @@
 static const char *CARD_RARITY_LABELS[3] = {
     "Bronze",
     "Prata",
-    "Gold"
+    "Ouro"
 };
 
 static const char *CARD_NAMES[3][2] = {
     { "Bronze 1", "Bronze 2" },
     { "Prata 1",  "Prata 2"  },
-    { "Gold 1",   "Gold 2"   }
+    { "Ouro 1",   "Ouro 2"   }
 };
 
 static const char *BAKUGAN_TYPE_LABELS[6] = {
@@ -36,7 +36,7 @@ static const char *ELEMENT_LABELS[6] = {
 static const Color CARD_RARITY_COLORS[3] = {
     (Color){176, 110, 62, 255},  // Bronze
     (Color){168, 176, 190, 255}, // Prata
-    (Color){236, 198, 62, 255}   // Gold
+    (Color){236, 198, 62, 255}   // Ouro
 };
 
 static const Color BAKUGAN_TYPE_COLORS[6] = {
@@ -57,7 +57,7 @@ static const Color ELEMENT_COLORS[6] = {
     (Color){250, 240, 180, 255}  // Luz
 };
 
-static bool PlayerDeckComplete(const DeckSetupState *state, int player)
+static bool PlayerDeckComplete(const EstadoPreparacaoDeck *state, int player)
 {
     for (int slot = 0; slot < 3; slot++) {
         if (state->cardTypes[player][slot] < 0) return false;
@@ -68,7 +68,7 @@ static bool PlayerDeckComplete(const DeckSetupState *state, int player)
     return true;
 }
 
-void InitDeckSetupState(DeckSetupState *state)
+void InicializarEstadoPreparacaoDeck(EstadoPreparacaoDeck *state)
 {
     if (!state) return;
 
@@ -87,7 +87,7 @@ void InitDeckSetupState(DeckSetupState *state)
     }
 }
 
-bool UpdateDeckSetupState(DeckSetupState *state)
+bool AtualizarEstadoPreparacaoDeck(EstadoPreparacaoDeck *state)
 {
     if (!state) return false;
 
@@ -194,14 +194,14 @@ static const char *GetRowTitle(int row)
     return "Elemento do Bakugan";
 }
 
-static const char *GetRowLabel(const DeckSetupState *state, int row, int index)
+static const char *GetRowLabel(const EstadoPreparacaoDeck *state, int row, int index)
 {
     if (row < 3) return CARD_NAMES[row][index];
     if (row == 3) return BAKUGAN_TYPE_LABELS[index];
     return ELEMENT_LABELS[index];
 }
 
-static const char *GetSelectedBakuganLabel(const DeckSetupState *state)
+static const char *GetSelectedBakuganLabel(const EstadoPreparacaoDeck *state)
 {
     int player = state->activePlayer;
     int slot = state->selectedSlot;
@@ -224,7 +224,7 @@ static void DrawStadiumTile(int x, int y, int w, int h, const char *label, Color
     DrawText(label, x + 30, y + h / 2 - 9, 18, RAYWHITE);
 }
 
-static void DrawChoicePreview(int x, int y, int w, int h, const DeckSetupState *state, int row)
+static void DrawChoicePreview(int x, int y, int w, int h, const EstadoPreparacaoDeck *state, int row)
 {
     int choice = state->selectedChoice;
     Color color = GetRowColor(row, choice);
@@ -276,7 +276,7 @@ static void DrawChoicePreview(int x, int y, int w, int h, const DeckSetupState *
     DrawText("ENTER confirma | W/S troca categoria | A/D/Q/E mudam a escolha", x + 16, y + h - 32, 16, Fade(RAYWHITE, 0.8f));
 }
 
-static void DrawPlayerPanel(const DeckSetupState *state, int player, int panelX, int panelY, int panelW, int panelH)
+static void DrawPlayerPanel(const EstadoPreparacaoDeck *state, int player, int panelX, int panelY, int panelW, int panelH)
 {
     bool active = (state->activePlayer == player);
     Color border = active ? (player == 0 ? BLUE : RED) : GRAY;
@@ -362,7 +362,7 @@ static void DrawPlayerPanel(const DeckSetupState *state, int player, int panelX,
     }
 }
 
-static void DrawChoicePalette(int screenWidth, int screenHeight, const DeckSetupState *state)
+static void DrawChoicePalette(int screenWidth, int screenHeight, const EstadoPreparacaoDeck *state)
 {
     int panelH = 260;
     int panelY = screenHeight - panelH - 72;
@@ -399,7 +399,7 @@ static void DrawChoicePalette(int screenWidth, int screenHeight, const DeckSetup
     DrawChoicePreview(previewX, previewY, previewW, previewH, state, row);
 }
 
-void DrawMainMenuScreen(int screenWidth, int screenHeight)
+void DesenharTelaMenuPrincipal(int screenWidth, int screenHeight)
 {
     DrawRectangle(0, 0, screenWidth, screenHeight, (Color){20, 26, 40, 255});
     DrawCircleGradient(screenWidth / 2, screenHeight / 2, 560.0f, (Color){40, 90, 150, 180}, (Color){20, 26, 40, 0});
@@ -415,15 +415,15 @@ void DrawMainMenuScreen(int screenWidth, int screenHeight)
     DrawText(hint, screenWidth / 2 - MeasureText(hint, 24) / 2, screenHeight / 2 + 48, 24, YELLOW);
 }
 
-void DrawDeckSetupScreen(int screenWidth, int screenHeight, const DeckSetupState *state)
+void DesenharTelaPreparacaoDeck(int screenWidth, int screenHeight, const EstadoPreparacaoDeck *state)
 {
     DrawRectangle(0, 0, screenWidth, screenHeight, (Color){238, 242, 248, 255});
     DrawRectangle(0, 0, screenWidth, 90, (Color){30, 37, 56, 255});
 
     const char *title = "Montagem de Decks";
     DrawText(title, 40, 22, 34, RAYWHITE);
-    DrawText("Cada jogador escolhe 1 Bronze, 1 Prata e 1 Gold, depois 3 Bakugans e seus elementos", 40, 56, 18, SKYBLUE);
-    DrawText("As cartas agora sao 6 unicas: 2 bronze, 2 prata e 2 gold.", 40, 76, 16, RAYWHITE);
+    DrawText("Cada jogador escolhe 1 Bronze, 1 Prata e 1 Ouro, depois 3 Bakugans e seus elementos", 40, 56, 18, SKYBLUE);
+    DrawText("As cartas agora sao 6 unicas: 2 bronze, 2 prata e 2 ouro.", 40, 76, 16, RAYWHITE);
 
     int panelW = (screenWidth - 120) / 2;
     int panelH = 320;
@@ -436,9 +436,32 @@ void DrawDeckSetupScreen(int screenWidth, int screenHeight, const DeckSetupState
     if (PlayerDeckComplete(state, state->activePlayer)) {
         DrawText("Deck completo. Pressione ESPACO para passar ao proximo jogador.", 40, infoY, 22, DARKGREEN);
     } else {
-        DrawText("W/S troca entre Bronze, Prata, Gold, Bakugan e Elemento", 40, infoY, 22, DARKGRAY);
+        DrawText("W/S troca entre Bronze, Prata, Ouro, Bakugan e Elemento", 40, infoY, 22, DARKGRAY);
         DrawText("A/D ou Q/E mudam a escolha dentro da categoria atual.", 40, infoY + 30, 20, DARKGRAY);
     }
 
     DrawChoicePalette(screenWidth, screenHeight, state);
+}
+
+void DesenharTelaVitoria(int screenWidth, int screenHeight, int vencedorJogador, int pontuacaoJogador1, int pontuacaoJogador2)
+{
+    DrawRectangle(0, 0, screenWidth, screenHeight, (Color){12, 18, 30, 255});
+    DrawCircleGradient(screenWidth / 2, screenHeight / 2 - 20, 520.0f, (Color){70, 110, 180, 180}, (Color){12, 18, 30, 0});
+    DrawCircleGradient(screenWidth / 2, screenHeight / 2 + 120, 220.0f, (Color){240, 180, 50, 120}, (Color){12, 18, 30, 0});
+
+    const char *winnerText = (vencedorJogador == 0) ? "P1 venceu a partida" : "P2 venceu a partida";
+    const Color winnerColor = (vencedorJogador == 0) ? BLUE : RED;
+
+    DrawText("VITORIA", screenWidth / 2 - MeasureText("VITORIA", 64) / 2, 110, 64, RAYWHITE);
+    DrawRectangle(screenWidth / 2 - 210, 210, 420, 170, (Color){255, 255, 255, 18});
+    DrawRectangleLines(screenWidth / 2 - 210, 210, 420, 170, winnerColor);
+    DrawText(winnerText, screenWidth / 2 - MeasureText(winnerText, 34) / 2, 256, 34, winnerColor);
+    DrawText(TextFormat("Placar final: P1 %d  -  P2 %d", pontuacaoJogador1, pontuacaoJogador2), screenWidth / 2 - 140, 310, 22, RAYWHITE);
+    DrawText("Primeiro a chegar em 3 pontos ganhou", screenWidth / 2 - 160, 342, 18, SKYBLUE);
+
+    DrawRectangle(screenWidth / 2 - 250, 432, 500, 170, (Color){22, 30, 48, 220});
+    DrawRectangleLines(screenWidth / 2 - 250, 432, 500, 170, Fade(winnerColor, 0.9f));
+    DrawText("S  Estatisticas da partida", screenWidth / 2 - 200, 470, 24, RAYWHITE);
+    DrawText("H  Ir para a tela inicial", screenWidth / 2 - 200, 512, 24, RAYWHITE);
+    DrawText("ENTER  Voltar para o menu inicial", screenWidth / 2 - 200, 552, 20, SKYBLUE);
 }

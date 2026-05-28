@@ -5,6 +5,7 @@
 
 #include "battle_map.h"
 #include "game_state.h"
+#include "stats.h"
 #include "menu.h"
 #include "ui.h"
 #include "monster.h"
@@ -105,6 +106,27 @@ static bool RollChance(float chance)
     return roll < (int)(Clamp01(chance) * 1000.0f);
 }
 
+static float LerpFloat(float start, float end, float amount)
+{
+    return start + (end - start) * amount;
+}
+
+static Vector3 LerpVector3(Vector3 start, Vector3 end, float amount)
+{
+    return (Vector3){
+        LerpFloat(start.x, end.x, amount),
+        LerpFloat(start.y, end.y, amount),
+        LerpFloat(start.z, end.z, amount)
+    };
+}
+
+static bool BatalhaEmAndamento(bool battleAwaitingActivation, int battleResolveTimer, int battleResolveGX, int battleResolveGZ)
+{
+    return battleAwaitingActivation ||
+           battleResolveTimer > 0 ||
+           (battleResolveGX != -1 && battleResolveGZ != -1);
+}
+
 static Vector3 ComputeKnockoutTarget(float x, float z, float offsetX, float offsetZ)
 {
     const float outsideMargin = 1.6f;
@@ -191,7 +213,7 @@ int main(void)
     const int screenWidth = 1880;
     const int screenHeight = 1080;
 
-    InitWindow(screenWidth, screenHeight, "Grid Movement");
+    InitWindow(screenWidth, screenHeight, "Movimento em Grade");
 
     Camera3D camera = { 0 };
     camera.position = (Vector3){ 10.0f, 7.0f, 0.0f };
@@ -254,10 +276,10 @@ int main(void)
     InicializarEstadoJogo(gridSizeX, gridSizeZ);
 
     int activePlayer = 0;
-    AppScreen screen = APP_SCREEN_MAIN_MENU;
+    TelaAplicacao screen = TELA_MENU_PRINCIPAL;
 
-    DeckSetupState deckSetup;
-    InitDeckSetupState(&deckSetup);
+    EstadoPreparacaoDeck deckSetup;
+    InicializarEstadoPreparacaoDeck(&deckSetup);
 
     int playerCards[2][3];
     int playerMonsters[2][3];
@@ -279,6 +301,8 @@ int main(void)
     bool battleActivatedByPlayer[2] = { false, false };
     const int BATTLE_COUNTDOWN_FRAMES = 180; // duração da batalha após ativações
     int battleWinnerOwner = -1;
+    EstatisticasPartida estatisticasPartida = {0};
+    int jogadorVencedor = -1;
 
     // =========================
     // TEXTURAS
@@ -318,12 +342,13 @@ int main(void)
 
     while (!WindowShouldClose())
     {
-        if (screen == APP_SCREEN_MAIN_MENU)
+        if (screen == TELA_MENU_PRINCIPAL)
         {
             if (IsKeyPressed(KEY_ENTER))
             {
-                InitDeckSetupState(&deckSetup);
-                screen = APP_SCREEN_DECK_SETUP;
+                InicializarEstadoPreparacaoDeck(&deckSetup);
+                ReiniciarProgressoPartida(&estatisticasPartida, &jogadorVencedor, &player1Score, &player2Score);
+                screen = TELA_PREPARACAO_DECK;
             }
 
             if (IsKeyPressed(KEY_ESCAPE))
@@ -331,16 +356,16 @@ int main(void)
 
             BeginDrawing();
             ClearBackground(RAYWHITE);
-            DrawMainMenuScreen(screenWidth, screenHeight);
+            DesenharTelaMenuPrincipal(screenWidth, screenHeight);
             EndDrawing();
             continue;
         }
 
-        if (screen == APP_SCREEN_DECK_SETUP)
+        if (screen == TELA_PREPARACAO_DECK)
         {
-            if (UpdateDeckSetupState(&deckSetup))
+            if (AtualizarEstadoPreparacaoDeck(&deckSetup))
             {
-                screen = APP_SCREEN_BATTLE;
+                screen = TELA_BATALHA;
                 activePlayer = 0;
                 playerGX = 2;
                 playerGZ = 1;
@@ -371,7 +396,49 @@ int main(void)
 
             BeginDrawing();
             ClearBackground(RAYWHITE);
-            DrawDeckSetupScreen(screenWidth, screenHeight, &deckSetup);
+            DesenharTelaPreparacaoDeck(screenWidth, screenHeight, &deckSetup);
+            EndDrawing();
+            continue;
+        }
+
+        if (screen == TELA_VITORIA)
+        {
+            if (IsKeyPressed(KEY_S))
+            {
+                screen = TELA_ESTATISTICAS;
+            }
+
+            if (IsKeyPressed(KEY_H) || IsKeyPressed(KEY_ENTER))
+            {
+                InicializarEstadoPreparacaoDeck(&deckSetup);
+                ReiniciarProgressoPartida(&estatisticasPartida, &jogadorVencedor, &player1Score, &player2Score);
+                screen = TELA_MENU_PRINCIPAL;
+            }
+
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            DesenharTelaVitoria(screenWidth, screenHeight, jogadorVencedor, player1Score, player2Score);
+            EndDrawing();
+            continue;
+        }
+
+        if (screen == TELA_ESTATISTICAS)
+        {
+            if (IsKeyPressed(KEY_ESCAPE))
+            {
+                screen = TELA_VITORIA;
+            }
+
+            if (IsKeyPressed(KEY_H) || IsKeyPressed(KEY_ENTER))
+            {
+                InicializarEstadoPreparacaoDeck(&deckSetup);
+                ReiniciarProgressoPartida(&estatisticasPartida, &jogadorVencedor, &player1Score, &player2Score);
+                screen = TELA_MENU_PRINCIPAL;
+            }
+
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            DesenharTelaEstatisticas(screenWidth, screenHeight, &estatisticasPartida, player1Score, player2Score);
             EndDrawing();
             continue;
         }
@@ -437,6 +504,22 @@ int main(void)
                     if (winnerOwner == 0) player1Score++;
                     else if (winnerOwner == 1) player2Score++;
 
+                    if (estatisticasPartida.quantidadeBatalhas < MAX_REGISTROS_BATALHA)
+                    {
+                        MontarRegistroBatalha(
+                            &estatisticasPartida.registros[estatisticasPartida.quantidadeBatalhas],
+                            estatisticasPartida.quantidadeBatalhas,
+                            battleResolveGX,
+                            battleResolveGZ,
+                            battleTile,
+                            winnerOwner
+                        );
+                        estatisticasPartida.quantidadeBatalhas++;
+                    }
+
+                    estatisticasPartida.jogadorVencedor = winnerOwner;
+                    SalvarEstatisticasPartidaEmArquivo(&estatisticasPartida, player1Score, player2Score);
+
                     if (m0.owner == m1.owner)
                     {
                         snprintf(placeMessage, sizeof(placeMessage) - 1, "P%d colocou 2 monstros e levou o ponto", winnerOwner + 1);
@@ -455,6 +538,32 @@ int main(void)
                     }
 
                     placedFeedbackTimer = 60;
+
+                    if (player1Score >= 3 || player2Score >= 3)
+                    {
+                        jogadorVencedor = (player1Score >= 3) ? 0 : 1;
+                        estatisticasPartida.jogadorVencedor = jogadorVencedor;
+                        SalvarEstatisticasPartidaEmArquivo(&estatisticasPartida, player1Score, player2Score);
+                        battleResolveGX = -1;
+                        battleResolveGZ = -1;
+                        battleResolveTimer = 0;
+                        battleAwaitingActivation = false;
+                        battleActivatedByPlayer[0] = false;
+                        battleActivatedByPlayer[1] = false;
+                        battleWinnerOwner = -1;
+                        monsterPlacement.active = false;
+                        placementChoice.active = false;
+                        placementChoice.type = PLACEMENT_NONE;
+                        placementChoice.slot = -1;
+                        pendingKnockout = false;
+                        pendingKnockoutOwner = -1;
+                        transforming = false;
+                        transformStage = 0;
+                        transformTimer = 0;
+                        monsterAnim.active = false;
+                        screen = TELA_VITORIA;
+                        continue;
+                    }
                 }
 
                 battleResolveGX = -1;
@@ -467,7 +576,9 @@ int main(void)
         // MOVIMENTO
         // =========================
 
-        if (!monsterPlacement.active && !placementChoice.active)
+        bool battleInProgress = BatalhaEmAndamento(battleAwaitingActivation, battleResolveTimer, battleResolveGX, battleResolveGZ);
+
+        if (!monsterPlacement.active && !placementChoice.active && !battleInProgress)
         {
             if (IsKeyPressed(KEY_S)) playerGX++;
             if (IsKeyPressed(KEY_W)) playerGX--;
@@ -484,13 +595,13 @@ int main(void)
         // MARCAR TILE
         // =========================
 
-        if (!monsterPlacement.active && !placementChoice.active && IsKeyPressed(KEY_ENTER))
+        if (!monsterPlacement.active && !placementChoice.active && !battleInProgress && IsKeyPressed(KEY_ENTER))
         {
             marcadoGX = playerGX;
             marcadoGZ = playerGZ;
         }
 
-        if (!monsterPlacement.active && !placementChoice.active && IsKeyPressed(KEY_ESCAPE))
+        if (!monsterPlacement.active && !placementChoice.active && !battleInProgress && IsKeyPressed(KEY_ESCAPE))
         {
             marcadoGX = -1;
             marcadoGZ = -1;
@@ -765,10 +876,9 @@ int main(void)
 
         if (!monsterPlacement.active &&
             !placementChoice.active &&
-            battleResolveTimer == 0 &&
+            !battleInProgress &&
             marcadoGX != -1 &&
-            marcadoGZ != -1 &&
-            !battleAwaitingActivation)
+            marcadoGZ != -1)
         {
             bool canPlaceMonster = (ContarCartasJogadorNoMapa(activePlayer) > 0);
 
@@ -828,6 +938,11 @@ int main(void)
                 }
             }
         }
+        else if (battleInProgress && (IsKeyPressed(KEY_C) || IsKeyPressed(KEY_M)))
+        {
+            snprintf(placeMessage, sizeof(placeMessage) - 1, "Nao e possivel jogar durante a batalha");
+            placedFeedbackTimer = 60;
+        }
 
         // =========================
         // ATIVAÇÃO DE BATALHA
@@ -884,6 +999,38 @@ int main(void)
             activePlayer ^= 1;
 
         // =========================
+        // FOCO DA CÂMERA
+        // =========================
+
+        Vector3 cameraBasePosition = { 10.0f, 7.0f, 0.0f };
+        Vector3 cameraBaseTarget = { 0.0f, 0.0f, 0.0f };
+        float cameraBaseFovy = 45.0f;
+
+        Vector3 desiredCameraPosition = cameraBasePosition;
+        Vector3 desiredCameraTarget = cameraBaseTarget;
+        float desiredFovy = cameraBaseFovy;
+
+        if (battleInProgress)
+        {
+            int focusGX = (battleResolveGX != -1) ? battleResolveGX : marcadoGX;
+            int focusGZ = (battleResolveGZ != -1) ? battleResolveGZ : marcadoGZ;
+
+            if (focusGX < 0) focusGX = playerGX;
+            if (focusGZ < 0) focusGZ = playerGZ;
+
+            float focusX, focusZ;
+            GridToWorld(focusGX, focusGZ, tileWidth, tileDepth, offsetX, offsetZ, &focusX, &focusZ);
+
+            desiredCameraTarget = (Vector3){ focusX, 0.7f, focusZ };
+            desiredCameraPosition = (Vector3){ focusX + 4.0f, 5.6f, focusZ + 7.5f };
+            desiredFovy = 38.0f;
+        }
+
+        camera.target = LerpVector3(camera.target, desiredCameraTarget, 0.08f);
+        camera.position = LerpVector3(camera.position, desiredCameraPosition, 0.08f);
+        camera.fovy = LerpFloat(camera.fovy, desiredFovy, 0.08f);
+
+        // =========================
         // GRID -> MUNDO
         // =========================
 
@@ -898,7 +1045,7 @@ int main(void)
         ClearBackground(RAYWHITE);
         BeginMode3D(camera);
 
-        DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ);
+        DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ, battleInProgress);
 
         Texture2D currentTexture;
         if (transformStage == 0)
@@ -914,8 +1061,11 @@ int main(void)
             currentTexture = monsterStage2;
         }
 
-        Vector3 cardPos = { playerX, 0.5f, playerZ };
-        DrawModel(cardModel, cardPos, 1.0f, WHITE);
+        if (!battleInProgress)
+        {
+            Vector3 cardPos = { playerX, 0.5f, playerZ };
+            DrawModel(cardModel, cardPos, 1.0f, WHITE);
+        }
 
         for (int gz = 0; gz < ObterTamanhoGridZ(); gz++)
         {
@@ -1029,13 +1179,13 @@ int main(void)
             );
         }
 
-        if (marcadoGX != -1 && marcadoGZ != -1)
+        if (marcadoGX != -1 && marcadoGZ != -1 && !battleInProgress)
         {
             bool canPickMonster = (ContarCartasJogadorNoMapa(activePlayer) > 0);
             DrawSelectionMenu(screenWidth, screenHeight, canPickMonster, activePlayer);
         }
 
-        if (placementChoice.active)
+        if (placementChoice.active && !battleInProgress)
         {
             const int *slots = (placementChoice.type == PLACEMENT_CARD)
                 ? playerCards[placementChoice.player]
