@@ -56,9 +56,139 @@ static int FindNextAvailableSlot(const int slots[3], int currentSlot, int direct
     return currentSlot;
 }
 
+static float Clamp01(float value)
+{
+    if (value < 0.0f) return 0.0f;
+    if (value > 1.0f) return 1.0f;
+    return value;
+}
+
+static Vector3 ComputeCardBlockTarget(float cardX, float cardZ, MonsterSide side, int stackIndex)
+{
+    float zOffset = (side == MONSTER_SIDE_LEFT) ? -0.78f : 0.78f;
+    float yBase = (side == MONSTER_SIDE_LEFT) ? 0.68f : 0.56f;
+
+    if (stackIndex < 0) stackIndex = 0;
+
+    return (Vector3){
+        cardX,
+        yBase + (0.08f * (float)stackIndex),
+        cardZ + zOffset
+    };
+}
+
+static bool IsCardBlockNearEdge(Vector3 blockTarget, float offsetX, float offsetZ, float margin)
+{
+    return fabsf(blockTarget.x) >= (offsetX - margin) || fabsf(blockTarget.z) >= (offsetZ - margin);
+}
+
+static float ComputeLaunchPrecision(MonsterSide chosenSide, float cursorT)
+{
+    float center = (chosenSide == MONSTER_SIDE_LEFT) ? 0.25f : 0.75f;
+    float distance = fabsf(cursorT - center);
+    float normalized = Clamp01(distance / 0.25f);
+    return 1.0f - normalized;
+}
+
+static float ComputeEdgeKnockoutChance(float precision)
+{
+    const float baseEdgeRisk = 0.10f;
+    const float errorWeight = 0.55f;
+    float chance = baseEdgeRisk + (1.0f - Clamp01(precision)) * errorWeight;
+    if (chance > 0.95f) chance = 0.95f;
+    return chance;
+}
+
+static bool RollChance(float chance)
+{
+    int roll = GetRandomValue(0, 1000);
+    return roll < (int)(Clamp01(chance) * 1000.0f);
+}
+
+static Vector3 ComputeKnockoutTarget(float x, float z, float offsetX, float offsetZ)
+{
+    const float outsideMargin = 1.6f;
+    float leftDist = fabsf((-offsetX) - x);
+    float rightDist = fabsf(offsetX - x);
+    float topDist = fabsf((-offsetZ) - z);
+    float bottomDist = fabsf(offsetZ - z);
+
+    float minDist = leftDist;
+    Vector3 out = (Vector3){ -offsetX - outsideMargin, 0.45f, z };
+
+    if (rightDist < minDist) {
+        minDist = rightDist;
+        out = (Vector3){ offsetX + outsideMargin, 0.45f, z };
+    }
+
+    if (topDist < minDist) {
+        minDist = topDist;
+        out = (Vector3){ x, 0.45f, -offsetZ - outsideMargin };
+    }
+
+    if (bottomDist < minDist) {
+        out = (Vector3){ x, 0.45f, offsetZ + outsideMargin };
+    }
+
+    return out;
+}
+
+static MonsterSide OppositeSide(MonsterSide side)
+{
+    return (side == MONSTER_SIDE_LEFT) ? MONSTER_SIDE_RIGHT : MONSTER_SIDE_LEFT;
+}
+
+static bool TileHasMonsterOnSide(TileEntity tile, MonsterSide side, MonsterPlacement *outMonster)
+{
+    for (int i = 0; i < tile.monsterCount; i++) {
+        if (tile.monsters[i].side == side) {
+            if (outMonster) *outMonster = tile.monsters[i];
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool TryMoveCollidedMonsterToAdjacentCard(int sourceGX, int sourceGZ, int gridX, int gridZ, MonsterPlacement collided)
+{
+    static const int dirs[4][2] = {
+        { 1, 0 },
+        { -1, 0 },
+        { 0, 1 },
+        { 0, -1 }
+    };
+
+    for (int i = 0; i < 4; i++) {
+        int nx = sourceGX + dirs[i][0];
+        int nz = sourceGZ + dirs[i][1];
+
+        if (nx < 0 || nz < 0 || nx >= gridX || nz >= gridZ) continue;
+        if (!TileHasCard(nx, nz)) continue;
+
+        TileEntity neighbor = GetTileAt(nx, nz);
+        if (neighbor.monsterCount != 0) continue;
+
+        if (PlaceMonsterAt(
+                nx,
+                nz,
+                collided.owner,
+                collided.slot,
+                collided.type,
+                collided.element,
+                collided.side))
+        {
+            RemoveTileMonsterByOwnerSlot(sourceGX, sourceGZ, collided.owner, collided.slot);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int main(void)
 {
-    const int screenWidth = 1980;
+    const int screenWidth = 1880;
     const int screenHeight = 1080;
 
     InitWindow(screenWidth, screenHeight, "Grid Movement");
@@ -167,6 +297,8 @@ int main(void)
     MonsterAnimation monsterAnim = MonsterAnimationCreate();
     MonsterPlacementChallenge monsterPlacement = {0};
     PlacementChoiceState placementChoice = {0};
+    bool pendingKnockout = false;
+    int pendingKnockoutOwner = -1;
     
     int transformStage = 0;
     int transformTimer = 0;
@@ -231,6 +363,8 @@ int main(void)
                 placementChoice.type = PLACEMENT_NONE;
                 placementChoice.slot = -1;
                 transforming = false;
+                pendingKnockout = false;
+                pendingKnockoutOwner = -1;
                 transformStage = 0;
                 transformTimer = 0;
                 placedFeedbackTimer = 0;
@@ -249,9 +383,30 @@ int main(void)
 
         if (MonsterAnimationUpdate(&monsterAnim))
         {
-            transforming = true;
-            transformStage = 0;
-            transformTimer = 0;
+            if (pendingKnockout)
+            {
+                if (pendingKnockoutOwner == 0)
+                {
+                    player1Score--;
+                    if (player1Score < 0) player1Score = 0;
+                }
+                else if (pendingKnockoutOwner == 1)
+                {
+                    player2Score--;
+                    if (player2Score < 0) player2Score = 0;
+                }
+
+                snprintf(placeMessage, sizeof(placeMessage) - 1, "Bakugan caiu para fora! P%d perdeu 1 ponto", pendingKnockoutOwner + 1);
+                placedFeedbackTimer = 60;
+                pendingKnockout = false;
+                pendingKnockoutOwner = -1;
+            }
+            else
+            {
+                transforming = true;
+                transformStage = 0;
+                transformTimer = 0;
+            }
         }
 
         // =========================
@@ -433,6 +588,8 @@ int main(void)
                 MonsterSide hitSide = (monsterPlacement.cursorT < 0.5f)
                     ? MONSTER_SIDE_LEFT
                     : MONSTER_SIDE_RIGHT;
+                float launchPrecision = ComputeLaunchPrecision(monsterPlacement.chosenSide, monsterPlacement.cursorT);
+                bool collisionDisplaced = false;
 
                 MonsterSide finalSide =
                     (hitSide == monsterPlacement.chosenSide)
@@ -440,6 +597,41 @@ int main(void)
                     : (monsterPlacement.chosenSide == MONSTER_SIDE_LEFT
                         ? MONSTER_SIDE_RIGHT
                         : MONSTER_SIDE_LEFT);
+
+                TileEntity targetBeforePlacement = GetTileAt(monsterPlacement.gx, monsterPlacement.gz);
+                MonsterPlacement collidedMonster = EmptyMonsterPlacement();
+                bool sideConflict = TileHasMonsterOnSide(targetBeforePlacement, finalSide, &collidedMonster);
+
+                if (sideConflict)
+                {
+                    if (TryMoveCollidedMonsterToAdjacentCard(
+                            monsterPlacement.gx,
+                            monsterPlacement.gz,
+                            gridSizeX,
+                            gridSizeZ,
+                            collidedMonster))
+                    {
+                        collisionDisplaced = true;
+                    }
+                    else
+                    {
+                        MonsterSide alternateSide = OppositeSide(finalSide);
+                        if (!TileHasMonsterOnSide(targetBeforePlacement, alternateSide, NULL))
+                        {
+                            finalSide = alternateSide;
+                        }
+                        else
+                        {
+                            snprintf(
+                                placeMessage,
+                                sizeof(placeMessage) - 1,
+                                "Colisao sem carta adjacente livre para deslocamento"
+                            );
+                            placedFeedbackTimer = 60;
+                            continue;
+                        }
+                    }
+                }
 
                 if (PlaceMonsterAt(
                         monsterPlacement.gx,
@@ -465,18 +657,78 @@ int main(void)
                     int randomX = GetRandomValue(-10, 10);
                     int randomZ = GetRandomValue(-10, 10);
 
+                    TileEntity placedTile = GetTileAt(monsterPlacement.gx, monsterPlacement.gz);
+                    int stackIndex = 0;
+                    for (int i = 0; i < placedTile.monsterCount; i++) {
+                        if (placedTile.monsters[i].owner == monsterPlacement.player &&
+                            placedTile.monsters[i].slot == monsterPlacement.slot)
+                        {
+                            stackIndex = i;
+                            break;
+                        }
+                    }
+
+                    Vector3 cardBlockTarget = ComputeCardBlockTarget(targetX, targetZ, finalSide, stackIndex);
+                    bool edgeBlock = IsCardBlockNearEdge(cardBlockTarget, offsetX, offsetZ, 0.25f);
+                    float knockoutChance = ComputeEdgeKnockoutChance(launchPrecision);
+                    bool knockedOut = edgeBlock && RollChance(knockoutChance);
+
+                    Vector3 animationTarget = cardBlockTarget;
+                    if (knockedOut)
+                    {
+                        animationTarget = ComputeKnockoutTarget(cardBlockTarget.x, cardBlockTarget.z, offsetX, offsetZ);
+                    }
+
                     MonsterAnimationStart(
                         &monsterAnim,
                         finalSide,
                         (Vector3){ targetX + randomX, 4.0f, targetZ + randomZ },
-                        (Vector3){ targetX, 0.7f, targetZ }
+                        animationTarget
                     );
 
                     RemovePlayerMonsterFromHand(monsterPlacement.player, monsterPlacement.slot);
 
+                    if (knockedOut)
+                    {
+                        RemoveTileMonsterByOwnerSlot(
+                            monsterPlacement.gx,
+                            monsterPlacement.gz,
+                            monsterPlacement.player,
+                            monsterPlacement.slot
+                        );
+                        pendingKnockout = true;
+                        pendingKnockoutOwner = monsterPlacement.player;
+                        battleMessage[0] = '\0';
+                        battleResolveGX = -1;
+                        battleResolveGZ = -1;
+                        battleResolveTimer = 0;
+                        battleAwaitingActivation = false;
+                        battleActivatedByPlayer[0] = false;
+                        battleActivatedByPlayer[1] = false;
+                        battleWinnerOwner = -1;
+                    }
+
                     int monsterCount = GetTileMonsterCount(monsterPlacement.gx, monsterPlacement.gz);
 
-                    if (monsterCount < 2)
+                    if (knockedOut)
+                    {
+                        snprintf(
+                            placeMessage,
+                            sizeof(placeMessage) - 1,
+                            "Bakugan no limite! Risco de queda aplicado"
+                        );
+                        placedFeedbackTimer = 60;
+                    }
+                    else if (collisionDisplaced)
+                    {
+                        snprintf(
+                            placeMessage,
+                            sizeof(placeMessage) - 1,
+                            "Colisao! Bakugan atingido foi para carta ao lado"
+                        );
+                        placedFeedbackTimer = 60;
+                    }
+                    else if (monsterCount < 2)
                     {
                         snprintf(
                             placeMessage,

@@ -25,12 +25,12 @@ static const char *BAKUGAN_TYPE_LABELS[6] = {
 };
 
 static const char *ELEMENT_LABELS[6] = {
-    "Fogo",
-    "Agua",
-    "Terra",
-    "Vento",
-    "Sombra",
-    "Luz"
+    "Pyros" ,
+    "Aquos",
+    "Subterra",
+    "Ventus",
+    "Darkus",
+    "Lithus"
 };
 
 static const Color CARD_RARITY_COLORS[3] = {

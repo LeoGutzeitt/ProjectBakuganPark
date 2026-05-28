@@ -234,6 +234,30 @@ int GetTileMonsterCount(int gx, int gz)
     return tile->monsterCount;
 }
 
+bool RemoveTileMonsterByOwnerSlot(int gx, int gz, int owner, int slot)
+{
+    TileEntity *tile = GetTilePtr(gx, gz);
+    if (!tile) return false;
+
+    for (int i = 0; i < tile->monsterCount; i++) {
+        MonsterPlacement monster = tile->monsters[i];
+        if (monster.owner == owner && monster.slot == slot) {
+            for (int j = i; j < tile->monsterCount - 1; j++) {
+                tile->monsters[j] = tile->monsters[j + 1];
+            }
+
+            tile->monsterCount--;
+            if (tile->monsterCount >= 0 && tile->monsterCount < 2) {
+                tile->monsters[tile->monsterCount] = EmptyMonsterPlacement();
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int GetGridSizeX(void) { return g_gridX; }
 int GetGridSizeZ(void) { return g_gridZ; }
 

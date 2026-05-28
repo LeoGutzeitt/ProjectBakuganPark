@@ -43,6 +43,7 @@ int CountCardsOnMap(void);
 TileEntity GetTileAt(int gx, int gz);
 bool TileHasCard(int gx, int gz);
 int GetTileMonsterCount(int gx, int gz);
+bool RemoveTileMonsterByOwnerSlot(int gx, int gz, int owner, int slot);
 
 int GetGridSizeX(void);
 int GetGridSizeZ(void);

@@ -19,12 +19,12 @@ const char *BakuganTypeName(int type)
 const char *BakuganElementName(int element)
 {
     static const char *names[BAKUGAN_ELEMENT_COUNT] = {
-        "Fogo",
-        "Agua",
-        "Terra",
-        "Vento",
-        "Sombra",
-        "Luz"
+        "Pyros" ,
+        "Aquos",
+        "Subterra",
+        "Ventus",
+        "Darkus",
+        "Lithus"
     };
 
     if (element < 0 || element >= BAKUGAN_ELEMENT_COUNT) return "Desconhecido";
