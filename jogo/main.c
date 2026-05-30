@@ -208,6 +208,17 @@ static bool TryMoveCollidedMonsterToAdjacentCard(int sourceGX, int sourceGZ, int
     return false;
 }
 
+static int ElementoPelaEscolhaDoMenu(int escolha)
+{
+    if (escolha <= 1) return BAKUGAN_ELEMENT_VENTO;
+    if (escolha <= 3) return BAKUGAN_ELEMENT_AGUA;
+    if (escolha <= 5) return BAKUGAN_ELEMENT_TERRA;
+    if (escolha <= 7) return BAKUGAN_ELEMENT_FOGO;
+    if (escolha <= 9) return BAKUGAN_ELEMENT_SOMBRA;
+
+    return BAKUGAN_ELEMENT_LUZ;
+}
+
 int main(void)
 {
     const int screenWidth = 1880;
@@ -313,6 +324,7 @@ int main(void)
     Texture2D monsterStage0 = LoadTexture("img/monster.png");
     Texture2D monsterStage1 = LoadTexture("img/monster1.png");
     Texture2D monsterStage2 = LoadTexture("img/monster2.png");
+    CarregarMenu();
 
     // =========================
     // ANIMAÇÃO
@@ -347,7 +359,9 @@ int main(void)
             if (IsKeyPressed(KEY_ENTER))
             {
                 InicializarEstadoPreparacaoDeck(&deckSetup);
+                ReiniciarMenu();
                 ReiniciarProgressoPartida(&estatisticasPartida, &jogadorVencedor, &player1Score, &player2Score);
+
                 screen = TELA_PREPARACAO_DECK;
             }
 
@@ -362,19 +376,39 @@ int main(void)
         }
 
         if (screen == TELA_PREPARACAO_DECK)
-        {
-            if (AtualizarEstadoPreparacaoDeck(&deckSetup))
+{
+            AtualizarMenu();
+
+            if (MenuFinalizado())
             {
-                screen = TELA_BATALHA;
+                InicializarEstadoJogo(gridSizeX, gridSizeZ);
+
+                for (int p = 0; p < 2; p++)
+                {
+                    deckSetup.cardTypes[p][0] = cartasBronzeEscolhidas[p];
+                    deckSetup.cardTypes[p][1] = cartasPrataEscolhidas[p];
+                    deckSetup.cardTypes[p][2] = cartasOuroEscolhidas[p];
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        int escolha = bakugansEscolhidos[p][i];
+
+                        deckSetup.monsterTypes[p][i] = escolha;
+                        deckSetup.monsterElements[p][i] = ElementoPelaEscolhaDoMenu(escolha);
+                    }
+                }
+
                 activePlayer = 0;
+
                 playerGX = 2;
                 playerGZ = 1;
+
                 marcadoGX = -1;
                 marcadoGZ = -1;
+
                 player1Score = 0;
                 player2Score = 0;
-                placeMessage[0] = '\0';
-                battleMessage[0] = '\0';
+
                 battleResolveTimer = 0;
                 battleResolveGX = -1;
                 battleResolveGZ = -1;
@@ -382,22 +416,34 @@ int main(void)
                 battleActivatedByPlayer[0] = false;
                 battleActivatedByPlayer[1] = false;
                 battleWinnerOwner = -1;
+
                 monsterPlacement.active = false;
                 placementChoice.active = false;
                 placementChoice.type = PLACEMENT_NONE;
                 placementChoice.slot = -1;
-                transforming = false;
+
                 pendingKnockout = false;
                 pendingKnockoutOwner = -1;
+
+                transforming = false;
                 transformStage = 0;
                 transformTimer = 0;
+                monsterAnim.active = false;
+
+                placeMessage[0] = '\0';
+                battleMessage[0] = '\0';
                 placedFeedbackTimer = 0;
+
+                screen = TELA_BATALHA;
             }
+            
 
             BeginDrawing();
-            ClearBackground(RAYWHITE);
-            DesenharTelaPreparacaoDeck(screenWidth, screenHeight, &deckSetup);
+
+            DesenharMenu();
+
             EndDrawing();
+
             continue;
         }
 
@@ -1241,6 +1287,7 @@ int main(void)
     UnloadTexture(monsterStage2);
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
+    DescarregarMenu();
 
     LiberarEstadoJogo();
     CloseWindow();

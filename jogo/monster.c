@@ -4,12 +4,18 @@
 const char *BakuganTypeName(int type)
 {
     static const char *names[BAKUGAN_TYPE_COUNT] = {
-        "Dragao",
-        "Tigre",
-        "Lobo",
-        "Golem",
-        "Serpente",
-        "Fenix"
+        "Vento 1",
+        "Vento 2",
+        "Água 1",
+        "Água 2",
+        "Terra 1",
+        "Terra 2",
+        "Fogo 1",
+        "Fogo 2",
+        "Sombra 1",
+        "Sombra 2",
+        "Luz 1",
+        "Luz 2"
     };
 
     if (type < 0 || type >= BAKUGAN_TYPE_COUNT) return "Desconhecido";
@@ -19,12 +25,12 @@ const char *BakuganTypeName(int type)
 const char *BakuganElementName(int element)
 {
     static const char *names[BAKUGAN_ELEMENT_COUNT] = {
-        "Pyros" ,
-        "Aquos",
-        "Subterra",
-        "Ventus",
-        "Darkus",
-        "Lithus"
+        "Fogo",
+        "Água",
+        "Terra",
+        "Vento",
+        "Sombra",
+        "Luz"
     };
 
     if (element < 0 || element >= BAKUGAN_ELEMENT_COUNT) return "Desconhecido";
@@ -127,7 +133,7 @@ MonsterPlacement MakeMonsterPlacement(int owner, int slot, int type, int element
     monster.slot = slot;
     monster.type = type;
     monster.element = element;
-    monster.power = 1 + type + element;
+    monster.power = 100;
     monster.side = MONSTER_SIDE_LEFT;
     return monster;
 }

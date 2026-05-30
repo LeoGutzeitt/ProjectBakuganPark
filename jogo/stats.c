@@ -93,7 +93,7 @@ void SalvarEstatisticasPartidaEmArquivo(const EstatisticasPartida *stats, int po
     fclose(file);
 }
 
-void DesenharTelaEstatisticas(int screenWidth, int screenHeight, const EstatisticasPartida *stats, int pontuacaoJogador1, int pontuacaoJogador2)
+void DesenharTelaEstatisticas(int screenWidth, int screenHeight, const EstatisticasPartida *estatisticas, int player1Score, int player2Score)
 {
     DrawRectangle(0, 0, screenWidth, screenHeight, (Color){18, 24, 36, 255});
     DrawCircleGradient(screenWidth / 2, 240, 520.0f, (Color){90, 130, 210, 150}, (Color){18, 24, 36, 0});
@@ -103,16 +103,34 @@ void DesenharTelaEstatisticas(int screenWidth, int screenHeight, const Estatisti
 
     DrawRectangle(40, 140, screenWidth - 80, 100, (Color){28, 36, 54, 245});
     DrawRectangleLines(40, 140, screenWidth - 80, 100, (Color){255, 255, 255, 70});
-    DrawText(TextFormat("Batalhas registradas: %d", stats ? stats->quantidadeBatalhas : 0), 64, 170, 24, RAYWHITE);
-    DrawText(TextFormat("Placar final: P1 %d  -  P2 %d", pontuacaoJogador1, pontuacaoJogador2), 64, 204, 24, SKYBLUE);
+
+    DrawText(
+        TextFormat("Batalhas registradas: %d", estatisticas ? estatisticas->quantidadeBatalhas : 0),
+        64,
+        170,
+        24,
+        RAYWHITE
+    );
+
+    DrawText(
+        TextFormat("Placar final: P1 %d  -  P2 %d", player1Score, player2Score),
+        64,
+        204,
+        24,
+        SKYBLUE
+    );
 
     int visibleCount = 0;
     int startIndex = 0;
 
-    if (stats && stats->quantidadeBatalhas > 0) {
-        visibleCount = stats->quantidadeBatalhas;
-        if (visibleCount > 4) visibleCount = 4;
-        startIndex = stats->quantidadeBatalhas - visibleCount;
+    if (estatisticas && estatisticas->quantidadeBatalhas > 0)
+    {
+        visibleCount = estatisticas->quantidadeBatalhas;
+
+        if (visibleCount > 4)
+            visibleCount = 4;
+
+        startIndex = estatisticas->quantidadeBatalhas - visibleCount;
     }
 
     int cardX = 40;
@@ -121,14 +139,19 @@ void DesenharTelaEstatisticas(int screenWidth, int screenHeight, const Estatisti
     int cardH = 138;
     int gap = 16;
 
-    if (!stats || stats->quantidadeBatalhas == 0) {
+    if (!estatisticas || estatisticas->quantidadeBatalhas == 0)
+    {
         DrawRectangle(cardX, cardY, cardW, cardH, (Color){28, 36, 54, 220});
         DrawRectangleLines(cardX, cardY, cardW, cardH, (Color){255, 255, 255, 60});
+
         DrawText("Nenhuma batalha foi registrada", cardX + 28, cardY + 48, 26, RAYWHITE);
         DrawText("Volte ao jogo para preencher este painel", cardX + 28, cardY + 84, 18, SKYBLUE);
-    } else {
-        for (int i = 0; i < visibleCount; i++) {
-            const RegistroBatalha *batalha = &stats->registros[startIndex + i];
+    }
+    else
+    {
+        for (int i = 0; i < visibleCount; i++)
+        {
+            const RegistroBatalha *batalha = &estatisticas->registros[startIndex + i];
             int y = cardY + i * (cardH + gap);
 
             DrawRectangle(cardX, y, cardW, cardH, (Color){28, 36, 54, 220});
@@ -142,5 +165,10 @@ void DesenharTelaEstatisticas(int screenWidth, int screenHeight, const Estatisti
         }
     }
 
-    DrawFooterHintBar(screenWidth, screenHeight, "ESC volta para a vitoria", "H / ENTER vai para a tela inicial");
+    DrawFooterHintBar(
+        screenWidth,
+        screenHeight,
+        "ESC volta para a vitoria",
+        "H / ENTER vai para a tela inicial"
+    );
 }

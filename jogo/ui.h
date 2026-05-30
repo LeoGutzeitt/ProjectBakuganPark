@@ -4,11 +4,27 @@
 #include "raylib.h"
 #include "monster.h"
 
-// Desenha o menu inferior com slots de monstro (círculos) e cartas (retângulos)
-void DrawBottomMenu(int screenWidth, int screenHeight, int activePlayer, int playerCards[2][3], int playerMonsters[2][3]);
 
-// Desenha o menu quando o tile está marcado: o jogador escolhe carta (C) ou monstro (M)
-// canPickMonster: verdadeiro se o jogador já tem uma carta no mapa (pode escolher monstro)
+typedef enum {
+    TELA_MENU_PRINCIPAL,
+    TELA_PREPARACAO_DECK,
+    TELA_BATALHA,
+    TELA_VITORIA,
+    TELA_ESTATISTICAS
+} TelaAplicacao;
+
+typedef struct {
+    int cardTypes[2][3];
+    int monsterTypes[2][3];
+    int monsterElements[2][3];
+} EstadoPreparacaoDeck;
+
+void InicializarEstadoPreparacaoDeck(EstadoPreparacaoDeck *deckSetup);
+
+void DesenharTelaMenuPrincipal(int screenWidth, int screenHeight);
+void DesenharTelaVitoria(int screenWidth, int screenHeight, int jogadorVencedor, int player1Score, int player2Score);
+
+void DrawBottomMenu(int screenWidth, int screenHeight, int activePlayer, int playerCards[2][3], int playerMonsters[2][3]);
 void DrawSelectionMenu(int screenWidth, int screenHeight, bool canPickMonster, int activePlayer);
 
 void DrawScoreBoard(int screenWidth, int hudY, int player1Score, int player2Score, Texture2D iconP1, Texture2D iconP2);
@@ -18,4 +34,4 @@ void DrawGameHints(int screenWidth, int screenHeight, const char *placeMessage);
 void DrawBattleFeedbackOverlay(int screenWidth, int screenHeight, const char *battleMessage, int battleResolveTimer, int placedFeedbackTimer);
 void DrawPlacementPrecisionBar(int screenWidth, int screenHeight, int chosenSide, float cursorT, int activePlayer);
 
-#endif // fim de UI_H
+#endif

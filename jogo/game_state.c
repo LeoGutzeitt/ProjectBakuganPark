@@ -17,16 +17,28 @@ static TileEntity *GetTilePtr(int gx, int gz)
 
 void InicializarEstadoJogo(int gridX, int gridZ)
 {
+    if (g_tiles)
+    {
+        free(g_tiles);
+        g_tiles = NULL;
+    }
+
     g_gridX = gridX;
     g_gridZ = gridZ;
+
     g_tiles = (TileEntity*)malloc(sizeof(TileEntity) * gridX * gridZ);
-    for (int i = 0; i < gridX * gridZ; i++) {
+
+    for (int i = 0; i < gridX * gridZ; i++)
+    {
         g_tiles[i].card = CartaVazia();
         g_tiles[i].monsterCount = 0;
-        for (int m = 0; m < 2; m++) {
+
+        for (int m = 0; m < 2; m++)
+        {
             g_tiles[i].monsters[m] = EmptyMonsterPlacement();
         }
     }
+
     InicializarMaoJogadores();
 }
 

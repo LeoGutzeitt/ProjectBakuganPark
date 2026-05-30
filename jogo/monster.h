@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "raylib.h"
 
-#define BAKUGAN_TYPE_COUNT 6
+#define BAKUGAN_TYPE_COUNT 12
 #define BAKUGAN_ELEMENT_COUNT 6
 
 typedef enum {
@@ -13,13 +13,24 @@ typedef enum {
 } MonsterSide;
 
 typedef enum {
-    BAKUGAN_TYPE_DRAGAO = 0,
-    BAKUGAN_TYPE_TIGRE = 1,
-    BAKUGAN_TYPE_LOBO = 2,
-    BAKUGAN_TYPE_GOLEM = 3,
-    BAKUGAN_TYPE_SERPENTE = 4,
-    BAKUGAN_TYPE_FENIX = 5
-} BakuganType;
+    BAKUGAN_TYPE_VENTO_1=0,
+    BAKUGAN_TYPE_VENTO_2=1,
+
+    BAKUGAN_TYPE_AGUA_1=2,
+    BAKUGAN_TYPE_AGUA_2=3,
+
+    BAKUGAN_TYPE_TERRA_1=4,
+    BAKUGAN_TYPE_TERRA_2=5,
+
+    BAKUGAN_TYPE_FOGO_1=6,
+    BAKUGAN_TYPE_FOGO_2=7,
+
+    BAKUGAN_TYPE_SOMBRA_1=8,
+    BAKUGAN_TYPE_SOMBRA_2=9,
+
+    BAKUGAN_TYPE_LUZ_1=10,
+    BAKUGAN_TYPE_LUZ_2=11
+}BakuganType;
 
 typedef enum {
     BAKUGAN_ELEMENT_FOGO = 0,

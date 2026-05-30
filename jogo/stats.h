@@ -24,6 +24,5 @@ void ReiniciarProgressoPartida(EstatisticasPartida *stats, int *vencedorJogador,
 void MontarRegistroBatalha(RegistroBatalha *record, int indiceBatalha, int gx, int gz, TileEntity battleTile, int vencedorDono);
 void SalvarEstatisticasPartidaEmArquivo(const EstatisticasPartida *stats, int pontuacaoJogador1, int pontuacaoJogador2);
 
-void DesenharTelaEstatisticas(int screenWidth, int screenHeight, const EstatisticasPartida *stats, int pontuacaoJogador1, int pontuacaoJogador2);
-
+void DesenharTelaEstatisticas(int screenWidth, int screenHeight, const EstatisticasPartida *estatisticas, int player1Score, int player2Score);
 #endif // STATS_H
