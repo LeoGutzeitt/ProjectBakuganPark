@@ -70,6 +70,9 @@ bool MonsterPlacementIsEmpty(MonsterPlacement monster);
 const char *BakuganTypeName(int type);
 const char *BakuganElementName(int element);
 
+// Base power and card-bonus helpers
+int BasePowerForType(int type);
+
 MonsterAnimation CriarAnimacaoMonstro(void);
 void IniciarAnimacaoMonstro(MonsterAnimation *animation, MonsterSide side, Vector3 start, Vector3 target);
 bool AtualizarAnimacaoMonstro(MonsterAnimation *animation);

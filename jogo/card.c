@@ -1,4 +1,5 @@
 #include "card.h"
+#include "monster.h"
 
 void ConfigureCardModel(Model *cardModel, Texture2D texture)
 {
@@ -34,6 +35,35 @@ void DrawPlacedCard(Vector3 position, Color color)
 {
     DrawCube(position, 1.8f, 0.05f, 2.4f, color);
     DrawCubeWires(position, 1.8f, 0.05f, 2.4f, BLACK);
+}
+
+int CardBonusForPortalCard(int cardSlot, int cardType, int element)
+{
+    // cardSlot: 0 = bronze, 1 = silver, 2 = gold
+    // cardType: 0 = card 1, 1 = card 2, 2 = card 3
+    // elementos seguindo esta ordem: fogo, agua, terra, luz, sombra, vento
+    static const int bonus[3][3][BAKUGAN_ELEMENT_COUNT] = {
+        {
+            { 20, 80, 140, 110, 60, 50 },
+            { 50, 60, 100, 80, 150, 150 },
+            { 140, 80, 50, 20, 60, 80 }
+        },
+        {
+            { 140, 120, 80, 60, 40, 20 },
+            { 150, 30, 100, 130, 10, 120 },
+            { 80, 120, 140, 30, 50, 180 }
+        },
+        {
+            { 100, 90, 150, 200, 110, 50 },
+            { 150, 90, 110, 130, 70, 120 },
+            { 150, 170, 100, 40, 100, 110 }
+        }
+    };
+
+    if (cardSlot < 0 || cardSlot >= 3) return 0;
+    if (cardType < 0 || cardType >= 3) return 0;
+    if (element < 0 || element >= BAKUGAN_ELEMENT_COUNT) return 0;
+    return bonus[cardSlot][cardType][element];
 }
 
 const char *CardTypeName(int type)

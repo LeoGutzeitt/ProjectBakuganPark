@@ -133,9 +133,16 @@ MonsterPlacement MakeMonsterPlacement(int owner, int slot, int type, int element
     monster.slot = slot;
     monster.type = type;
     monster.element = element;
-    monster.power = 100;
+    monster.power = BasePowerForType(type);
     monster.side = MONSTER_SIDE_LEFT;
     return monster;
+}
+
+int BasePowerForType(int type)
+{
+    static const int base[BAKUGAN_TYPE_COUNT] = { 90, 92, 88, 90, 95, 97, 93, 95, 89, 91, 100, 102 };
+    if (type < 0 || type >= BAKUGAN_TYPE_COUNT) return 80;
+    return base[type];
 }
 
 MonsterPlacement EmptyMonsterPlacement(void)

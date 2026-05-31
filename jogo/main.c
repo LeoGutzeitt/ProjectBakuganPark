@@ -265,10 +265,12 @@ static Color CardRevealColor(int cardType)
 
 static int CalcularPoderComPortal(CardPlacement portalCard, MonsterPlacement monster)
 {
-    return 100 +
-           BonusPorTipoBakugan(monster.type) +
-           BonusPorElementoBakugan(monster.element) +
-           BonusPorCartaPortal(portalCard.type);
+    // Cada monstro tem pontuação base fixa; a carta adiciona um bônus dependendo
+    // do bronze selecionado e do elemento do monstro (aplicado apenas uma vez ao
+    // ativar a carta portal).
+    int base = BasePowerForType(monster.type);
+    int cardBonus = CardBonusForPortalCard(portalCard.slot, portalCard.type, monster.element);
+    return base + cardBonus;
 }
 
 static void AplicarStatusDaCartaPortal(int gx, int gz)
@@ -1400,7 +1402,7 @@ int main(void)
         if ((battlePortalOpening || battleAwaitingActivation) && battleResolveGX != -1 && battleResolveGZ != -1)
         {
             TileEntity bt = ObterTileEm(battleResolveGX, battleResolveGZ);
-            DrawBattlePortalOverlay(screenWidth, screenHeight, bt, battlePortalOpening, battlePortalTimer, BATTLE_PORTAL_FRAMES);
+            DrawMinimalBattleUI(screenWidth, screenHeight, battleResolveGX, battleResolveGZ, battlePortalOpening, battleAwaitingActivation, battlePortalStatusApplied, battlePortalTimer);
 
             DrawBattleCardPreview(
                 screenWidth,

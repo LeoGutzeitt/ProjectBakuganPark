@@ -30,6 +30,8 @@ bool CartaEstaVazia(CardPlacement card);
 
 const char *CardTypeName(int type);
 
+int CardBonusForPortalCard(int cardSlot, int cardType, int element);
+
 void ConfigureCardModel(Model *cardModel, Texture2D texture);
 void DrawCardModelAt(const Model *cardModel, Vector3 position);
 void DrawCardModelAtWithTexture(const Model *cardModel, Texture2D texture, Vector3 position);
