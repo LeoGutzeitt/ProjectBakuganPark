@@ -1019,6 +1019,10 @@ int main(void)
                         finalSide,
                         (Vector3){ targetX + randomX, 4.0f, targetZ + randomZ },
                         animationTarget,
+                        monsterPlacement.gx,
+                        monsterPlacement.gz,
+                        monsterPlacement.player,
+                        monsterPlacement.slot,
                         deckSetup.monsterTypes[monsterPlacement.player][monsterPlacement.slot],
                         deckSetup.monsterElements[monsterPlacement.player][monsterPlacement.slot]
                     );
@@ -1357,9 +1361,17 @@ int main(void)
                             ez + zOffset
                         };
 
-                        if (!monsterAnim.active)
+                        // determine if this placed monster is the one currently animating
+                        bool skipThisMonster = false;
+                        if (monsterAnim.active && monsterAnim.gx == gx && monsterAnim.gz == gz)
                         {
-                            float monsterScale = 0.8f;
+                            if (monsterAnim.owner == te.monsters[m].owner && monsterAnim.slot == te.monsters[m].slot)
+                                skipThisMonster = true;
+                        }
+
+                        if (!skipThisMonster)
+                        {
+                            float monsterScale = 1.2f;
 
                             if (isBattleTile)
                             {

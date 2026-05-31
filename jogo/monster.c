@@ -20,12 +20,12 @@ static SpriteJsonAnimation rolagemAnimations[BAKUGAN_ELEMENT_COUNT];
 static const char *ElementFileName(int element)
 {
     static const char *names[BAKUGAN_ELEMENT_COUNT] = {
-        "Agua",
-        "Vento",
-        "Terra",
-        "Escuro",
-        "Luz",
-        "Fogo"
+        "agua",
+        "vento",
+        "terra",
+        "escuro",
+        "luz",
+        "fogo"
     };
 
     if (element < 0 || element >= BAKUGAN_ELEMENT_COUNT)
@@ -195,7 +195,21 @@ static void CarregarAnimacaoJson(SpriteJsonAnimation *anim, const char *jsonPath
 
     if (!jsonText)
     {
+        // try alternative path prefixed with 'jogo/'
+        char altJson[256];
+        snprintf(altJson, sizeof(altJson), "jogo/%s", jsonPath);
+        jsonText = LoadFileText(altJson);
+    }
+
+    if (!jsonText)
+    {
         anim->texture = LoadTexture(fallbackImagePath);
+        if (anim->texture.id == 0)
+        {
+            char alt[256];
+            snprintf(alt, sizeof(alt), "jogo/%s", fallbackImagePath);
+            anim->texture = LoadTexture(alt);
+        }
 
         if (anim->texture.id != 0)
         {
@@ -216,6 +230,12 @@ static void CarregarAnimacaoJson(SpriteJsonAnimation *anim, const char *jsonPath
     LerImagemDoJson(jsonText, imagePath, sizeof(imagePath), fallbackImagePath);
 
     anim->texture = LoadTexture(imagePath);
+    if (anim->texture.id == 0)
+    {
+        char alt[256];
+        snprintf(alt, sizeof(alt), "jogo/%s", imagePath);
+        anim->texture = LoadTexture(alt);
+    }
 
     const char *p = jsonText;
 
@@ -265,9 +285,21 @@ void CarregarAnimacoesBakugan(void)
     {
         snprintf(path, sizeof(path), "img/%s.png", TypeFileName(type));
         bakuganFinalTextures[type] = LoadTexture(path);
+        if (bakuganFinalTextures[type].id == 0)
+        {
+            char alt[256];
+            snprintf(alt, sizeof(alt), "jogo/%s", path);
+            bakuganFinalTextures[type] = LoadTexture(alt);
+        }
 
         snprintf(path, sizeof(path), "img/%s.t.png", TypeFileName(type));
         transformTextures[type] = LoadTexture(path);
+        if (transformTextures[type].id == 0)
+        {
+            char altt[256];
+            snprintf(altt, sizeof(altt), "jogo/%s", path);
+            transformTextures[type] = LoadTexture(altt);
+        }
     }
 
     for (int element = 0; element < BAKUGAN_ELEMENT_COUNT; element++)
@@ -281,6 +313,12 @@ void CarregarAnimacoesBakugan(void)
         );
 
         bolaElementoTextures[element] = LoadTexture(path);
+        if (bolaElementoTextures[element].id == 0)
+        {
+            char altb[256];
+            snprintf(altb, sizeof(altb), "jogo/%s", path);
+            bolaElementoTextures[element] = LoadTexture(altb);
+        }
 
         if (bolaElementoTextures[element].id == 0)
             printf("ERRO bola elemento: %s\n", path);
@@ -289,6 +327,12 @@ void CarregarAnimacoesBakugan(void)
         snprintf(fallback, sizeof(fallback), "img/rolagem_%s.png", ElementFileName(element));
 
         CarregarAnimacaoJson(&rolagemAnimations[element], path, fallback);
+        printf("[ANIM] element=%s bola_id=%d anim_tex_id=%d frames=%d\n",
+            ElementFileName(element),
+            bolaElementoTextures[element].id,
+            rolagemAnimations[element].texture.id,
+            rolagemAnimations[element].frameCount
+        );
     }
 }
 
@@ -378,11 +422,15 @@ MonsterAnimation CriarAnimacaoMonstro(void)
     animation.phase = MONSTER_ANIM_TRAJETORIA;
     animation.frame = 0;
     animation.frameTimer = 0;
+    animation.gx = -1;
+    animation.gz = -1;
+    animation.owner = -1;
+    animation.slot = -1;
 
     return animation;
 }
 
-void IniciarAnimacaoMonstro(MonsterAnimation *animation, MonsterSide side, Vector3 start, Vector3 target, int type, int element)
+void IniciarAnimacaoMonstro(MonsterAnimation *animation, MonsterSide side, Vector3 start, Vector3 target, int gx, int gz, int owner, int slot, int type, int element)
 {
     if (!animation)
         return;
@@ -395,6 +443,11 @@ void IniciarAnimacaoMonstro(MonsterAnimation *animation, MonsterSide side, Vecto
 
     animation->type = type;
     animation->element = element;
+    animation->gx = gx;
+    animation->gz = gz;
+
+    animation->owner = owner;
+    animation->slot = slot;
 
     animation->phase = MONSTER_ANIM_TRAJETORIA;
     animation->frame = 0;
@@ -441,7 +494,7 @@ bool AtualizarAnimacaoMonstro(MonsterAnimation *animation)
         float dz = animation->target.z - animation->position.z;
         float dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
-        if (dist < 0.05f)
+        if (dist < 0.25f)
         {
             animation->position = animation->target;
             animation->phase = MONSTER_ANIM_BOLA_ELEMENTO;
@@ -456,7 +509,7 @@ bool AtualizarAnimacaoMonstro(MonsterAnimation *animation)
     {
         animation->rotation += 360.0f * GetFrameTime();
 
-        if (animation->frameTimer >= 35)
+        if (animation->frameTimer >= 60)
         {
             animation->phase = MONSTER_ANIM_TRANSFORMACAO;
             animation->frame = 0;
@@ -567,47 +620,86 @@ void DesenharAnimacaoMonstroBillboard(Camera3D camera, const MonsterAnimation *a
 {
     if (!animation)
         return;
+    // Draw using JSON frames if available (preferred), otherwise spin the bola texture in screen space.
+    int element = animation->element;
+    if (element < 0 || element >= BAKUGAN_ELEMENT_COUNT) element = BAKUGAN_ELEMENT_FOGO;
 
-    Texture2D texture = ObterTexturaAnimacaoMonstro(animation);
-
-    if (texture.id == 0)
-        return;
-
-    Rectangle source = {
-        0,
-        0,
-        (float)texture.width,
-        (float)texture.height
-    };
+    SpriteJsonAnimation *anim = &rolagemAnimations[element];
+    Vector2 animScale = { scale.x * 1.12f, scale.y * 1.12f };
 
     if (animation->phase == MONSTER_ANIM_TRAJETORIA)
     {
-        int element = animation->element;
+        // prefer drawing the bola (rolling sphere) texture so launches are visible
+        Texture2D bola = bolaElementoTextures[element];
+        if (bola.id != 0)
+        {
+            Rectangle src = { 0, 0, (float)bola.width, (float)bola.height };
+            DrawBillboardRec(
+                camera,
+                bola,
+                src,
+                animation->position,
+                animScale,
+                WHITE
+            );
+            return;
+        }
 
-        if (element < 0 || element >= BAKUGAN_ELEMENT_COUNT)
-            element = BAKUGAN_ELEMENT_FOGO;
-
-        SpriteJsonAnimation *anim = &rolagemAnimations[element];
-
-        if (anim->frameCount > 0)
+        // if no bola texture, try JSON frames
+        if (anim->texture.id != 0 && anim->frameCount > 0)
         {
             int frame = animation->frame;
-
-            if (frame < 0 || frame >= anim->frameCount)
-                frame = 0;
-
-            source = anim->frames[frame];
+            if (frame < 0 || frame >= anim->frameCount) frame = 0;
+            Rectangle src = anim->frames[frame];
+            DrawBillboardRec(camera, anim->texture, src, animation->position, animScale, WHITE);
+            return;
         }
+
+        // ultimate fallback: final bakugan texture
+        Texture2D final = bakuganFinalTextures[animation->type >=0 ? animation->type : 0];
+        Rectangle srcF = { 0, 0, (float)final.width, (float)final.height };
+        DrawBillboardRec(camera, final, srcF, animation->position, animScale, WHITE);
+        return;
     }
 
-    DrawBillboardRec(
-        camera,
-        texture,
-        source,
-        animation->position,
-        scale,
-        WHITE
-    );
+    if (animation->phase == MONSTER_ANIM_BOLA_ELEMENTO)
+    {
+        Texture2D bola = bolaElementoTextures[element];
+        if (bola.id != 0)
+        {
+            Rectangle src = { 0, 0, (float)bola.width, (float)bola.height };
+            DrawBillboardRec(
+                camera,
+                bola,
+                src,
+                animation->position,
+                animScale,
+                WHITE
+            );
+            return;
+        }
+
+        Texture2D final = bakuganFinalTextures[animation->type >=0 ? animation->type : 0];
+        Rectangle srcF = { 0, 0, (float)final.width, (float)final.height };
+        DrawBillboardRec(camera, final, srcF, animation->position, animScale, WHITE);
+        return;
+    }
+
+    if (animation->phase == MONSTER_ANIM_TRANSFORMACAO)
+    {
+        Texture2D ttex = transformTextures[animation->type];
+        if (ttex.id != 0)
+        {
+            Rectangle srcT = { 0, 0, (float)ttex.width, (float)ttex.height };
+            DrawBillboardRec(camera, ttex, srcT, animation->position, animScale, WHITE);
+            return;
+        }
+
+        Texture2D final = bakuganFinalTextures[animation->type >=0 ? animation->type : 0];
+        Rectangle srcF2 = { 0, 0, (float)final.width, (float)final.height };
+        DrawBillboardRec(camera, final, srcF2, animation->position, animScale, WHITE);
+        return;
+    }
 }
 
 MonsterPlacement MakeMonsterPlacement(int owner, int slot, int type, int element)

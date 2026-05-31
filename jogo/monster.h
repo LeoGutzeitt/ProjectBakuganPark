@@ -47,6 +47,8 @@ typedef struct {
     int power;
     int type;
     int element;
+    int gx;
+    int gz;
     MonsterSide side;
 } MonsterPlacement;
 
@@ -65,6 +67,11 @@ typedef struct MonsterAnimation {
 
     int type;
     int element;
+    int gx;
+    int gz;
+
+    int owner;
+    int slot;
 
     MonsterAnimationPhase phase;
     int frame;
@@ -100,6 +107,10 @@ void IniciarAnimacaoMonstro(
     MonsterSide side,
     Vector3 start,
     Vector3 target,
+    int gx,
+    int gz,
+    int owner,
+    int slot,
     int type,
     int element
 );

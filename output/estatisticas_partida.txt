@@ -1,0 +1,10 @@
+Estatisticas da partida
+Placar final: P1 1 - P2 0
+Vencedor da partida: P1
+Batalhas registradas: 1
+
+Batalha 1 | Grid 3,2
+Carta usada: Ataque (P1)
+Bakugans: P2 Vento 1/Vento vs P1 Vento 1/Vento
+Vencedor: P1 Vento 1/Vento
+
