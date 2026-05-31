@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "raylib.h"
+#include "card.h"
 #include "monster.h"
 
 static EstadoMenu estadoAtual = MENU_INICIO;
@@ -40,6 +41,59 @@ static bool BakuganJaEscolhido(int jogador, int escolha)
     }
 
     return false;
+}
+
+static const char *CardStatLabel(int index)
+{
+    static const char *labels[6] = { "Fogo", "Agua", "Terra", "Luz", "Escuridao", "Vento" };
+
+    if (index < 0 || index >= 6) return "?";
+    return labels[index];
+}
+
+static int CardStatToElement(int index)
+{
+    static const int elements[6] = {
+        BAKUGAN_ELEMENT_FOGO,
+        BAKUGAN_ELEMENT_AGUA,
+        BAKUGAN_ELEMENT_TERRA,
+        BAKUGAN_ELEMENT_LUZ,
+        BAKUGAN_ELEMENT_SOMBRA,
+        BAKUGAN_ELEMENT_VENTO
+    };
+
+    if (index < 0 || index >= 6) return BAKUGAN_ELEMENT_FOGO;
+    return elements[index];
+}
+
+static void DrawCardStatsPanel(int x, int y, int w, int h, int slot, int cardIndex, Texture2D texture)
+{
+    DrawRectangle(x, y, w, h, (Color){ 34, 43, 62, 255 });
+    DrawRectangleLinesEx((Rectangle){ (float)x, (float)y, (float)w, (float)h }, 2.0f, (Color){ 255, 221, 117, 255 });
+    DrawText("PONTOS DA CARTA", x + 14, y + 12, 18, YELLOW);
+    DrawText(TextFormat("%s C%d", slot == 0 ? "Bronze" : (slot == 1 ? "Prata" : "Ouro"), cardIndex + 1), x + 14, y + 38, 14, RAYWHITE);
+
+    DrawTextureEx(texture, (Vector2){ (float)x + 14.0f, (float)y + 66.0f }, 0.0f, 0.42f, WHITE);
+
+    for (int row = 0; row < 3; row++)
+    {
+        int leftIndex = row * 2;
+        int rightIndex = leftIndex + 1;
+        int leftValue = CardBonusForPortalCard(slot, cardIndex, CardStatToElement(leftIndex));
+        int rightValue = CardBonusForPortalCard(slot, cardIndex, CardStatToElement(rightIndex));
+
+        DrawText(TextFormat("%s %d", CardStatLabel(leftIndex), leftValue), x + 120, y + 70 + row * 22, 12, SKYBLUE);
+        DrawText(TextFormat("%s %d", CardStatLabel(rightIndex), rightValue), x + 238, y + 70 + row * 22, 12, SKYBLUE);
+    }
+}
+
+static void DrawBakuganBasePanel(int x, int y, int w, int h, int index)
+{
+    DrawRectangle(x, y, w, h, (Color){ 34, 43, 62, 255 });
+    DrawRectangleLinesEx((Rectangle){ (float)x, (float)y, (float)w, (float)h }, 2.0f, (Color){ 255, 221, 117, 255 });
+    DrawText("G POWER BASE", x + 14, y + 12, 18, YELLOW);
+    DrawText(BakuganTypeName(index), x + 14, y + 40, 22, WHITE);
+    DrawText(TextFormat("Base %d", BasePowerForType(index)), x + 14, y + 74, 28, GOLD);
 }
 
 Texture2D ObterBakuganTexture(int index)
@@ -352,22 +406,12 @@ void DesenharMenu()
 
     if (estadoAtual == MENU_BAKUGAN)
     {
-        Rectangle previewPanel = { 900.0f, 150.0f, 860.0f, 620.0f };
+        Rectangle previewPanel = { 840.0f, 150.0f, 920.0f, 620.0f };
 
         DrawRectangleRec(previewPanel, (Color){ 34, 43, 62, 255 });
         DrawRectangleLinesEx(previewPanel, 2.0f, (Color){ 255, 221, 117, 255 });
 
-        DrawText(
-            TextFormat(
-                "JOGADOR %d ESCOLHA SEUS BAKUGANS (%d/3)",
-                jogadorAtual + 1,
-                quantidadeEscolhida
-            ),
-            100,
-            120,
-            35,
-            YELLOW
-        );
+        DrawText(TextFormat("JOGADOR %d ESCOLHE BAKUGANS (%d/3)", jogadorAtual + 1, quantidadeEscolhida), 100, 120, 30, YELLOW);
 
         DrawText("PREVIA DO BAKUGAN", (int)previewPanel.x + 28, (int)previewPanel.y + 18, 24, WHITE);
 
@@ -386,11 +430,12 @@ void DesenharMenu()
             (Color){ 255, 255, 255, 70 }
         );
 
-        DrawText(BakuganTypeName(escolhaAtual), (int)previewPanel.x + 360, (int)previewPanel.y + 98, 34, WHITE);
-        DrawText(TextFormat("Selecao atual: %d/3", quantidadeEscolhida + 1), (int)previewPanel.x + 360, (int)previewPanel.y + 146, 22, SKYBLUE);
-        DrawText("Use ENTER para confirmar", (int)previewPanel.x + 360, (int)previewPanel.y + 182, 18, RAYWHITE);
+        DrawText(BakuganTypeName(escolhaAtual), (int)previewPanel.x + 360, (int)previewPanel.y + 98, 30, WHITE);
+        DrawText(TextFormat("Atual: %d/3", quantidadeEscolhida + 1), (int)previewPanel.x + 360, (int)previewPanel.y + 146, 20, SKYBLUE);
+        DrawText("ENTER confirma", (int)previewPanel.x + 360, (int)previewPanel.y + 182, 18, RAYWHITE);
+        DrawText(TextFormat("Base G: %d", BasePowerForType(escolhaAtual)), (int)previewPanel.x + 360, (int)previewPanel.y + 214, 26, GOLD);
 
-        DrawText("Escolhidos deste jogador", (int)previewPanel.x + 360, (int)previewPanel.y + 246, 22, YELLOW);
+        DrawText("Escolhidos", (int)previewPanel.x + 360, (int)previewPanel.y + 246, 20, YELLOW);
 
         for (int i = 0; i < 3; i++)
         {
@@ -413,7 +458,8 @@ void DesenharMenu()
             }
         }
 
-        DrawText("Grades com borda verde ja foram escolhidas", (int)previewPanel.x + 360, (int)previewPanel.y + 448, 16, (Color){ 180, 235, 180, 255 });
+        DrawText("Borda verde = escolhido", (int)previewPanel.x + 360, (int)previewPanel.y + 448, 16, (Color){ 180, 235, 180, 255 });
+        DrawBakuganBasePanel((int)previewPanel.x + 360, (int)previewPanel.y + 500, 260, 90, escolhaAtual);
 
         for (int i = 0; i < 12; i++)
         {
@@ -468,6 +514,8 @@ void DesenharMenu()
             40,
             YELLOW
         );
+
+        DrawCardStatsPanel(1120, 170, 540, 300, 0, escolhaAtual, bronzeCards[escolhaAtual]);
     }
 
     if (estadoAtual == MENU_PRATA)
@@ -479,6 +527,8 @@ void DesenharMenu()
             40,
             LIGHTGRAY
         );
+
+        DrawCardStatsPanel(1120, 170, 540, 300, 1, escolhaAtual, prataCards[escolhaAtual]);
     }
 
     if (estadoAtual == MENU_OURO)
@@ -490,6 +540,8 @@ void DesenharMenu()
             40,
             GOLD
         );
+
+        DrawCardStatsPanel(1120, 170, 540, 300, 2, escolhaAtual, ouroCards[escolhaAtual]);
     }
 
     // =========================

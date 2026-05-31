@@ -106,11 +106,37 @@ Texture2D SelecionarTexturaEstagioMonstro(Texture2D stage0, Texture2D stage1, Te
     return stage2;
 }
 
-void DesenharMonstroBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, MonsterSide side)
+static bool SpriteFacesRightByDefault(int type)
+{
+    static const bool facesRight[BAKUGAN_TYPE_COUNT] = {
+        true,  // Vento 1
+        false, // Vento 2
+        false, // Agua 1
+        false, // Agua 2
+        false, // Terra 1
+        false, // Terra 2
+        true,  // Fogo 1
+        false, // Fogo 2
+        false, // Sombra 1
+        false, // Sombra 2
+        true,  // Luz 1
+        false  // Luz 2
+    };
+
+    if (type < 0 || type >= BAKUGAN_TYPE_COUNT) return false;
+    return facesRight[type];
+}
+
+void DesenharMonstroBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, int type, MonsterSide side)
 {
     Rectangle source = { 0, 0, (float)texture.width, (float)texture.height };
 
-    if (side == MONSTER_SIDE_RIGHT)
+    bool facesRight = SpriteFacesRightByDefault(type);
+    bool flipHorizontal = (type < 0)
+        ? (side == MONSTER_SIDE_LEFT)
+        : ((side == MONSTER_SIDE_LEFT) ? !facesRight : facesRight);
+
+    if (flipHorizontal)
     {
         source.x = (float)texture.width;
         source.width = -(float)texture.width;

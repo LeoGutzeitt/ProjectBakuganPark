@@ -351,6 +351,7 @@ int main(void)
     const int screenHeight = 1080;
 
     InitWindow(screenWidth, screenHeight, "Movimento em Grade");
+    SetExitKey(KEY_NULL);
 
     Camera3D camera = { 0 };
     camera.position = (Vector3){ 10.0f, 7.0f, 0.0f };
@@ -810,7 +811,7 @@ int main(void)
             marcadoGZ = playerGZ;
         }
 
-        if (!monsterPlacement.active && !placementChoice.active && !battleInProgress && IsKeyPressed(KEY_ESCAPE))
+        if (!monsterPlacement.active && !placementChoice.active && !battleInProgress && IsKeyPressed(KEY_BACKSPACE))
         {
             marcadoGX = -1;
             marcadoGZ = -1;
@@ -839,12 +840,18 @@ int main(void)
             }
 
             for (int digit = 0; digit < 3; digit++) {
-                if (IsKeyPressed(KEY_ONE + digit) && slots[digit]) {
-                    placementChoice.slot = digit;
+                if (IsKeyPressed(KEY_ONE + digit)) {
+                    if (slots[digit]) {
+                        placementChoice.slot = digit;
+                    }
+                    else {
+                        snprintf(placeMessage, sizeof(placeMessage) - 1, "Slot indisponivel");
+                        placedFeedbackTimer = 60;
+                    }
                 }
             }
 
-            if (IsKeyPressed(KEY_ESCAPE)) {
+            if (IsKeyPressed(KEY_BACKSPACE)) {
                 placementChoice.active = false;
                 placementChoice.type = PLACEMENT_NONE;
                 placementChoice.slot = -1;
@@ -1075,7 +1082,7 @@ int main(void)
                 }
             }
 
-            if (IsKeyPressed(KEY_ESCAPE))
+            if (IsKeyPressed(KEY_BACKSPACE))
             {
                 monsterPlacement.active = false;
             }
@@ -1373,6 +1380,7 @@ int main(void)
                                 battleTexture,
                                 monsterPos,
                                 (Vector2){ monsterScale, monsterScale },
+                                te.monsters[m].type,
                                 side
                             );
                         }
@@ -1388,6 +1396,7 @@ int main(void)
                 currentTexture,
                 monsterAnim.position,
                 (Vector2){ 1.2f, 1.2f },
+                -1,
                 monsterAnim.side
             );
         }

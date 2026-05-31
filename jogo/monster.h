@@ -78,6 +78,6 @@ void IniciarAnimacaoMonstro(MonsterAnimation *animation, MonsterSide side, Vecto
 bool AtualizarAnimacaoMonstro(MonsterAnimation *animation);
 void AtualizarTransformacaoMonstro(bool *transforming, int *transformTimer, int *transformStage);
 Texture2D SelecionarTexturaEstagioMonstro(Texture2D stage0, Texture2D stage1, Texture2D stage2, int transformStage);
-void DesenharMonstroBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, MonsterSide side);
+void DesenharMonstroBillboard(Camera3D camera, Texture2D texture, Vector3 position, Vector2 scale, int type, MonsterSide side);
 
 #endif // fim de MONSTER_H

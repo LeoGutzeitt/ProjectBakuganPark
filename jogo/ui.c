@@ -53,7 +53,7 @@ static Color GetTurnColor(int activePlayer)
 
 static const char *CardBonusElementLabel(int displayIndex)
 {
-    static const char *labels[6] = { "Fogo", "Agua", "Terra", "Luz", "Escuridao", "Vento" };
+    static const char *labels[6] = { "Fogo", "Agua", "Terra", "Luz", "Sombra", "Vento" };
 
     if (displayIndex < 0 || displayIndex >= 6) return "?";
     return labels[displayIndex];
@@ -78,16 +78,19 @@ static void DrawCardBonusDetailPanel(int x, int y, int w, int h, int cardSlot, i
 {
     DrawRectangle(x, y, w, h, (Color){ 20, 28, 44, 235 });
     DrawRectangleLines(x, y, w, h, (Color){ 250, 212, 102, 220 });
-    DrawText("PONTOS DA CARTA", x + 12, y + 10, 16, YELLOW);
-    DrawText(TextFormat("Slot %d | %s", cardSlot + 1, CardTypeName(cardType)), x + 12, y + 32, 14, RAYWHITE);
+    DrawText("Pontos da Carta", x + 10, y + 8, 18, YELLOW);
+    DrawText(TextFormat("Slot %d  %s", cardSlot + 1, CardTypeName(cardType)), x + 10, y + 30, 14, RAYWHITE);
 
-    int rowY = y + 56;
-    for (int i = 0; i < 6; i++)
+    int rowY = y + 54;
+    for (int row = 0; row < 3; row++)
     {
-        int value = CardBonusForPortalCard(cardSlot, cardType, CardBonusElementToMonsterElement(i));
-        int colX = x + 12 + (i % 2) * (w / 2 - 14);
-        int labelY = rowY + (i / 2) * 22;
-        DrawText(TextFormat("%s: %d", CardBonusElementLabel(i), value), colX, labelY, 13, SKYBLUE);
+        int leftIndex = row * 2;
+        int rightIndex = leftIndex + 1;
+        int leftValue = CardBonusForPortalCard(cardSlot, cardType, CardBonusElementToMonsterElement(leftIndex));
+        int rightValue = CardBonusForPortalCard(cardSlot, cardType, CardBonusElementToMonsterElement(rightIndex));
+
+        DrawText(TextFormat("%s +%d", CardBonusElementLabel(leftIndex), leftValue), x + 10, rowY + row * 22, 13, SKYBLUE);
+        DrawText(TextFormat("%s +%d", CardBonusElementLabel(rightIndex), rightValue), x + (w / 2) + 2, rowY + row * 22, 13, SKYBLUE);
     }
 }
 
@@ -219,8 +222,8 @@ void DrawBottomMenu(int screenWidth, int screenHeight, int activePlayer, int pla
 
 void DrawSelectionMenu(int screenWidth, int screenHeight, bool canPickMonster, int activePlayer, const int cardTypes[3], const int monsterTypes[3], const int monsterElements[3])
 {
-    int menuW = 520;
-    int menuH = 304;
+    int menuW = 860;
+    int menuH = 320;
     int x = (screenWidth - menuW) / 2;
     int y = (screenHeight - menuH) / 2;
     Color turnColor = GetTurnColor(activePlayer);
@@ -229,83 +232,66 @@ void DrawSelectionMenu(int screenWidth, int screenHeight, bool canPickMonster, i
     DrawRectangleLines(x, y, menuW, menuH, turnColor);
     DrawRectangle(x, y, menuW, 4, turnColor);
 
-    DrawText(activePlayer == 0 ? "P1 escolhe" : "P2 escolhe", x + 18, y + 10, 20, turnColor);
-    DrawText("Escolha visualmente o que quer jogar", x + 18, y + 34, 14, DARKGRAY);
+    DrawText(activePlayer == 0 ? "P1 escolhe" : "P2 escolhe", x + 18, y + 10, 22, turnColor);
+    DrawText("Escolha visualmente o que quer jogar", x + 18, y + 38, 15, DARKGRAY);
 
-    DrawRectangle(x + 18, y + 62, 212, 112, Fade(CardTypeColor(cardTypes[0]), 0.18f));
-    DrawRectangleLines(x + 18, y + 62, 212, 112, turnColor);
-    DrawText("CARTA", x + 28, y + 70, 18, BLACK);
-    DrawText("Pressione C", x + 130, y + 70, 14, DARKGRAY);
+    DrawRectangle(x + 18, y + 68, 250, 130, Fade(CardTypeColor(cardTypes[0]), 0.18f));
+    DrawRectangleLines(x + 18, y + 68, 250, 130, turnColor);
+    DrawText("CARTA", x + 28, y + 78, 20, BLACK);
+    DrawText("Pressione C", x + 136, y + 80, 14, DARKGRAY);
     for (int i = 0; i < 3; i++)
     {
-        DrawMiniCardPreview(x + 28 + i * 64, y + 98, 54, 60, cardTypes[i], false, true);
+        DrawMiniCardPreview(x + 28 + i * 74, y + 108, 62, 68, cardTypes[i], false, true);
     }
 
-    DrawRectangle(x + 264, y + 62, 238, 112, canPickMonster ? Fade(turnColor, 0.18f) : (Color){ 185, 185, 185, 255 });
-    DrawRectangleLines(x + 264, y + 62, 238, 112, canPickMonster ? turnColor : GRAY);
-    DrawText("BAKUGAN", x + 274, y + 70, 18, BLACK);
-    DrawText("Pressione M", x + 390, y + 70, 14, DARKGRAY);
+    DrawRectangle(x + 282, y + 68, 270, 130, canPickMonster ? Fade(turnColor, 0.18f) : (Color){ 185, 185, 185, 255 });
+    DrawRectangleLines(x + 282, y + 68, 270, 130, canPickMonster ? turnColor : GRAY);
+    DrawText("BAKUGAN", x + 292, y + 78, 20, BLACK);
+    DrawText("Pressione M", x + 420, y + 80, 14, DARKGRAY);
     for (int i = 0; i < 3; i++)
     {
-        DrawMiniMonsterPreview(x + 274 + i * 72, y + 98, 60, 60, monsterTypes[i], monsterElements[i], false, canPickMonster);
+        DrawMiniMonsterPreview(x + 292 + i * 78, y + 108, 64, 68, monsterTypes[i], monsterElements[i], false, canPickMonster);
     }
 
     if (!canPickMonster)
-        DrawText("Precisa de carta no mapa primeiro", x + 18, y + 186, 12, RED);
+        DrawText("Precisa de carta no mapa primeiro", x + 18, y + 212, 12, RED);
 
-    DrawText("Pontos das cartas do deck", x + 18, y + 196, 14, YELLOW);
-    for (int i = 0; i < 3; i++)
-    {
-        int lineY = y + 218 + i * 24;
-        int slot = i;
-        int type = cardTypes[i];
-        DrawText(TextFormat("%s:", i == 0 ? "Bronze" : (i == 1 ? "Prata" : "Ouro")), x + 18, lineY, 13, BLACK);
-        DrawText(TextFormat("F%d A%d T%d L%d S%d V%d",
-            CardBonusForPortalCard(slot, type, BAKUGAN_ELEMENT_FOGO),
-            CardBonusForPortalCard(slot, type, BAKUGAN_ELEMENT_AGUA),
-            CardBonusForPortalCard(slot, type, BAKUGAN_ELEMENT_TERRA),
-            CardBonusForPortalCard(slot, type, BAKUGAN_ELEMENT_LUZ),
-            CardBonusForPortalCard(slot, type, BAKUGAN_ELEMENT_SOMBRA),
-            CardBonusForPortalCard(slot, type, BAKUGAN_ELEMENT_VENTO)),
-            x + 78,
-            lineY,
-            12,
-            DARKBLUE);
-    }
+    DrawText("C = carta | M = bakugan | BACKSPACE = cancelar", x + 18, y + 272, 14, DARKGRAY);
 }
 
 void DrawScoreBoard(int screenWidth, int hudY, int player1Score, int player2Score, Texture2D iconP1, Texture2D iconP2)
 {
-    DrawTexture(iconP1, 10, hudY, WHITE);
-    DrawText("P1", 64, hudY + 6, 18, BLACK);
+    int panelW = 248;
+    int panelH = 76;
+    int leftX = 14;
+    int rightX = screenWidth - 14 - panelW;
+
+    DrawRectangle(leftX, hudY, panelW, panelH, (Color){ 18, 24, 36, 230 });
+    DrawRectangleLines(leftX, hudY, panelW, panelH, BLUE);
+    DrawTexture(iconP1, leftX + 10, hudY + 14, WHITE);
+    DrawText("P1", leftX + 72, hudY + 10, 20, SKYBLUE);
+    DrawText(TextFormat("%d/3", player1Score), leftX + 114, hudY + 24, 34, WHITE);
 
     for (int i = 0; i < 3; i++)
     {
-        int bx = 104 + i * 22;
-
-        DrawRectangleLines(bx, hudY + 6, 18, 18, BLACK);
-
+        int bx = leftX + 66 + i * 32;
+        DrawRectangleLines(bx, hudY + 52, 24, 18, RAYWHITE);
         if (i < player1Score)
-        {
-            DrawRectangle(bx + 1, hudY + 7, 16, 16, GOLD);
-        }
+            DrawRectangle(bx + 3, hudY + 55, 18, 12, GOLD);
     }
 
-    int p2x = screenWidth - 58;
-
-    DrawTexture(iconP2, p2x, hudY, WHITE);
-    DrawText("P2", p2x - 36, hudY + 6, 18, BLACK);
+    DrawRectangle(rightX, hudY, panelW, panelH, (Color){ 18, 24, 36, 230 });
+    DrawRectangleLines(rightX, hudY, panelW, panelH, RED);
+    DrawTexture(iconP2, rightX + 10, hudY + 14, WHITE);
+    DrawText("P2", rightX + 72, hudY + 10, 20, (Color){ 255, 150, 150, 255 });
+    DrawText(TextFormat("%d/3", player2Score), rightX + 114, hudY + 24, 34, WHITE);
 
     for (int i = 0; i < 3; i++)
     {
-        int bx = p2x - 120 + i * 22;
-
-        DrawRectangleLines(bx, hudY + 6, 18, 18, BLACK);
-
+        int bx = rightX + 66 + i * 32;
+        DrawRectangleLines(bx, hudY + 52, 24, 18, RAYWHITE);
         if (i < player2Score)
-        {
-            DrawRectangle(bx + 1, hudY + 7, 16, 16, GOLD);
-        }
+            DrawRectangle(bx + 3, hudY + 55, 18, 12, GOLD);
     }
 }
 
@@ -313,47 +299,62 @@ void DrawBattleActivationPrompt(int screenWidth, int screenHeight, bool p0Presen
 {
     if (!p0Present && !p1Present) return;
 
-    int cy = screenHeight / 2 - 40;
+    int cy = screenHeight / 2 - 58;
     int cx = screenWidth / 2;
 
-    DrawText("Ativar carta para iniciar batalha:", cx - 180, cy - 30, 18, BLACK);
+    DrawRectangleRounded((Rectangle){ (float)(cx - 250), (float)(cy - 62), 500.0f, 150.0f }, 0.18f, 10, (Color){ 18, 24, 36, 235 });
+    DrawRectangleRoundedLines((Rectangle){ (float)(cx - 250), (float)(cy - 62), 500.0f, 150.0f }, 0.18f, 10, (Color){ 255, 255, 255, 70 });
+    DrawText("Ative a carta para iniciar a batalha", cx - MeasureText("Ative a carta para iniciar a batalha", 18) / 2, cy - 40, 18, RAYWHITE);
 
     if (p0Present)
     {
-        const char *label = p0Activated ? "P1 ativado (F)" : "P1: pressione F";
-        DrawText(label, cx - 160, cy, 16, p0Activated ? ORANGE : DARKGRAY);
+        Rectangle card = { (float)(cx - 225), (float)(cy - 2), 200.0f, 70.0f };
+        DrawRectangleRounded(card, 0.22f, 10, p0Activated ? (Color){ 255, 166, 90, 255 } : (Color){ 45, 55, 78, 255 });
+        DrawRectangleRoundedLines(card, 0.22f, 10, p0Activated ? ORANGE : (Color){ 255, 255, 255, 65 });
+        DrawText("P1", cx - 205, cy + 10, 20, RAYWHITE);
+        DrawText(p0Activated ? "Ativado" : "Pronto", cx - 205, cy + 34, 14, p0Activated ? (Color){ 255, 240, 220, 255 } : SKYBLUE);
+        DrawRectangleRounded((Rectangle){ (float)(cx - 98), (float)(cy + 10), 42.0f, 42.0f }, 0.35f, 10, p0Activated ? (Color){ 255, 215, 140, 255 } : ORANGE);
+        DrawRectangleRoundedLines((Rectangle){ (float)(cx - 98), (float)(cy + 10), 42.0f, 42.0f }, 0.35f, 10, WHITE);
+        DrawText("F", cx - 85, cy + 18, 24, BLACK);
     }
 
     if (p1Present)
     {
-        const char *label = p1Activated ? "P2 ativado (L)" : "P2: pressione L";
-        DrawText(label, cx + 20, cy, 16, p1Activated ? RED : DARKGRAY);
+        Rectangle card = { (float)(cx + 25), (float)(cy - 2), 200.0f, 70.0f };
+        DrawRectangleRounded(card, 0.22f, 10, p1Activated ? (Color){ 255, 120, 120, 255 } : (Color){ 45, 55, 78, 255 });
+        DrawRectangleRoundedLines(card, 0.22f, 10, p1Activated ? RED : (Color){ 255, 255, 255, 65 });
+        DrawText("P2", cx + 45, cy + 10, 20, RAYWHITE);
+        DrawText(p1Activated ? "Ativado" : "Pronto", cx + 45, cy + 34, 14, p1Activated ? (Color){ 255, 240, 240, 255 } : SKYBLUE);
+        DrawRectangleRounded((Rectangle){ (float)(cx + 152), (float)(cy + 10), 42.0f, 42.0f }, 0.35f, 10, p1Activated ? (Color){ 255, 190, 190, 255 } : RED);
+        DrawRectangleRoundedLines((Rectangle){ (float)(cx + 152), (float)(cy + 10), 42.0f, 42.0f }, 0.35f, 10, WHITE);
+        DrawText("L", cx + 166, cy + 18, 24, BLACK);
     }
 }
 
 void DrawPlacementSlotMenu(int screenWidth, int screenHeight, int activePlayer, const int availableSlots[3], int selectedSlot, bool selectingMonster, const int cardTypes[3], const int monsterTypes[3], const int monsterElements[3])
 {
-    int menuW = 760;
-    int menuH = 262;
+    int menuW = 920;
+    int menuH = 380;
     int x = (screenWidth - menuW) / 2;
     int y = (screenHeight - menuH) / 2;
     Color turnColor = GetTurnColor(activePlayer);
 
     const char *title = selectingMonster ? "Escolha o Bakugan" : "Escolha a Carta";
-    const char *subtitle = selectingMonster ? "1-3 escolhe o bakugan | ENTER confirma | ESC cancela" : "1-3 escolhe a carta | ENTER confirma | ESC cancela";
+    const char *subtitle = selectingMonster ? "1-3 troca bakugan | ENTER confirma" : "1-3 troca carta | ENTER confirma";
 
     DrawRectangle(x, y, menuW, menuH, (Color){230, 230, 230, 255});
     DrawRectangleLines(x, y, menuW, menuH, turnColor);
     DrawRectangle(x, y, menuW, 4, turnColor);
 
     DrawText(activePlayer == 0 ? "P1" : "P2", x + 18, y + 10, 20, turnColor);
-    DrawText(title, x + 60, y + 10, 20, BLACK);
-    DrawText(subtitle, x + 18, y + 34, 14, DARKGRAY);
+    DrawText(title, x + 60, y + 10, 22, BLACK);
+    DrawText(subtitle, x + 18, y + 38, 14, DARKGRAY);
+    DrawText("BACKSPACE cancela", x + 18, y + 56, 14, MAROON);
 
     int slotX = x + 18;
-    int slotY = y + 68;
-    int slotW = 168;
-    int slotH = 108;
+    int slotY = y + 86;
+    int slotW = 186;
+    int slotH = 112;
 
     for (int i = 0; i < 3; i++)
     {
@@ -366,62 +367,70 @@ void DrawPlacementSlotMenu(int screenWidth, int screenHeight, int activePlayer, 
 
         DrawRectangleRec(box, back);
         DrawRectangleLinesEx(box, selected ? 3.0f : 2.0f, selected ? BLACK : DARKGRAY);
-        DrawText(TextFormat("%d", i + 1), sx + 10, sy + 8, 18, BLACK);
+        DrawText(TextFormat("%d", i + 1), sx + 10, sy + 8, 20, BLACK);
 
         if (selectingMonster)
         {
-            DrawMiniMonsterPreview(sx + 10, sy + 28, 148, 70, monsterTypes[i], monsterElements[i], selected, available);
+            DrawMiniMonsterPreview(sx + 10, sy + 28, 164, 74, monsterTypes[i], monsterElements[i], selected, available);
         }
         else
         {
-            DrawMiniCardPreview(sx + 10, sy + 28, 148, 70, cardTypes[i], selected, available);
+            DrawMiniCardPreview(sx + 10, sy + 28, 164, 74, cardTypes[i], selected, available);
         }
 
-        DrawText(available ? "Disponivel" : "Usado", sx + 10, sy + 86, 12, available ? DARKGREEN : DARKGRAY);
+        DrawText(available ? "Disponivel" : "Usado", sx + 10, sy + 92, 12, available ? DARKGREEN : DARKGRAY);
     }
 
-    int previewX = x + 540;
+    int previewX = x + 640;
     int previewY = y + 18;
-    int previewType = selectingMonster ? monsterTypes[selectedSlot < 0 ? 0 : selectedSlot] : cardTypes[selectedSlot < 0 ? 0 : selectedSlot];
-    int previewElement = selectingMonster ? monsterElements[selectedSlot < 0 ? 0 : selectedSlot] : -1;
-    Texture2D previewTexture = selectingMonster ? ObterBakuganTexture(previewType) : ObterCartaTexturePorSlot(selectedSlot < 0 ? 0 : selectedSlot, cardTypes[selectedSlot < 0 ? 0 : selectedSlot]);
+    int previewIndex = (selectedSlot >= 0 && selectedSlot < 3) ? selectedSlot : 0;
+    bool previewValid = (selectedSlot >= 0 && selectedSlot < 3 && availableSlots[selectedSlot] != 0);
+    int previewType = selectingMonster ? monsterTypes[previewIndex] : cardTypes[previewIndex];
+    int previewElement = selectingMonster ? monsterElements[previewIndex] : -1;
+    Texture2D previewTexture = selectingMonster ? ObterBakuganTexture(previewType) : ObterCartaTexturePorSlot(previewIndex, cardTypes[previewIndex]);
 
-    DrawRectangle(previewX, previewY, 184, 180, (Color){ 20, 28, 44, 255 });
-    DrawRectangleLines(previewX, previewY, 184, 180, turnColor);
+    DrawRectangle(previewX, previewY, 262, 222, (Color){ 20, 28, 44, 255 });
+    DrawRectangleLines(previewX, previewY, 262, 222, turnColor);
     DrawText("ESCOLHIDO", previewX + 10, previewY + 10, 12, YELLOW);
 
-    if (selectingMonster)
+    if (!previewValid)
     {
-        DrawTextureEx(previewTexture, (Vector2){ (float)previewX + 10.0f, (float)previewY + 36.0f }, 0.0f, 0.70f, WHITE);
-        DrawText(BakuganTypeName(previewType), previewX + 86, previewY + 38, 14, RAYWHITE);
-        DrawText(BakuganElementName(previewElement), previewX + 86, previewY + 58, 14, SKYBLUE);
-        DrawText(TextFormat("Base %d", BasePowerForType(previewType)), previewX + 86, previewY + 80, 14, MAROON);
+        DrawText("Slot indisponivel", previewX + 12, previewY + 50, 24, RAYWHITE);
+        DrawText("Escolha outro slot", previewX + 12, previewY + 82, 16, SKYBLUE);
+    }
+    else if (selectingMonster)
+    {
+        DrawTextureEx(previewTexture, (Vector2){ (float)previewX + 12.0f, (float)previewY + 48.0f }, 0.0f, 0.74f, WHITE);
+        DrawText(BakuganTypeName(previewType), previewX + 124, previewY + 42, 18, RAYWHITE);
+        DrawText(BakuganElementName(previewElement), previewX + 124, previewY + 68, 16, SKYBLUE);
+        DrawText(TextFormat("Base G: %d", BasePowerForType(previewType)), previewX + 124, previewY + 104, 28, GOLD);
     }
     else
     {
-        DrawTextureEx(previewTexture, (Vector2){ (float)previewX + 8.0f, (float)previewY + 38.0f }, 0.0f, 0.60f, WHITE);
-        DrawText(CardTypeName(previewType), previewX + 72, previewY + 38, 14, RAYWHITE);
-        DrawText(TextFormat("Slot %d", (selectedSlot < 0 ? 0 : selectedSlot) + 1), previewX + 72, previewY + 58, 13, SKYBLUE);
-        DrawCardBonusDetailPanel(previewX + 72, previewY + 78, 102, 92, selectedSlot < 0 ? 0 : selectedSlot, previewType);
+        DrawTextureEx(previewTexture, (Vector2){ (float)previewX + 10.0f, (float)previewY + 46.0f }, 0.0f, 0.74f, WHITE);
+        DrawText(CardTypeName(previewType), previewX + 122, previewY + 40, 18, RAYWHITE);
+        DrawText(TextFormat("Slot %d", previewIndex + 1), previewX + 122, previewY + 66, 15, SKYBLUE);
+        DrawCardBonusDetailPanel(previewX + 122, previewY + 88, 128, 124, previewIndex, previewType);
     }
 
-    DrawText("A/D troca | ENTER confirma", x + 18, y + 182, 14, DARKGRAY);
+    DrawRectangle(x + 18, y + 308, menuW - 36, 54, (Color){ 230, 235, 244, 255 });
+    DrawRectangleLines(x + 18, y + 308, menuW - 36, 54, (Color){ 140, 140, 150, 255 });
+    DrawText("A/D ou 1-3 escolhe um slot valido", x + 34, y + 328, 15, DARKGRAY);
 }
 
 void DrawBattleCardPreview(int screenWidth, int screenHeight, int owner, int cardType, int slot, Texture2D cardTexture, bool opening)
 {
-    int panelW = 420;
-    int panelH = 150;
+    int panelW = 280;
+    int panelH = 58;
     int x = (screenWidth - panelW) / 2;
-    int y = opening ? 20 : 32;
+    int y = opening ? 152 : 160;
 
     DrawRectangle(x, y, panelW, panelH, (Color){ 15, 20, 32, 235 });
     DrawRectangleLines(x, y, panelW, panelH, owner == 0 ? ORANGE : RED);
-    DrawText(opening ? "CARTA EM BATALHA" : "CARTA SELECIONADA", x + 18, y + 12, 20, YELLOW);
-    DrawText(TextFormat("P%d | Slot %d", owner + 1, slot + 1), x + 18, y + 38, 16, RAYWHITE);
-    DrawText(CardTypeName(cardType), x + 18, y + 60, 24, WHITE);
-    DrawTextureEx(cardTexture, (Vector2){ (float)x + 280.0f, (float)y + 16.0f }, 0.0f, 0.48f, WHITE);
-    DrawText(opening ? "Virando agora" : "Pronta para virar na batalha", x + 18, y + 102, 14, SKYBLUE);
+    DrawText(opening ? "CARTA PORTAL" : "CARTA EM JOGO", x + 12, y + 8, 14, YELLOW);
+    DrawText(TextFormat("P%d  SLOT %d", owner + 1, slot + 1), x + 12, y + 26, 12, RAYWHITE);
+    DrawText(CardTypeName(cardType), x + 12, y + 40, 14, WHITE);
+    DrawTextureEx(cardTexture, (Vector2){ (float)x + 208.0f, (float)y + 8.0f }, 0.0f, 0.28f, WHITE);
 }
 
 static float LerpFloatLocal(float a, float b, float t)
@@ -435,7 +444,6 @@ static const float UI_PI = 3.14159265f;
 
 void DrawMinimalBattleUI(int screenWidth, int screenHeight, int tileGX, int tileGZ, bool portalOpening, bool awaitingActivation, bool statusApplied, int battlePortalTimer)
 {
-    // simple floating panels with bakugan symbol and animated points when activation starts
     static int animElapsed[2] = {0,0};
     static int animDur = 60;
     static int animTarget[2] = {0,0};
@@ -451,11 +459,18 @@ void DrawMinimalBattleUI(int screenWidth, int screenHeight, int tileGX, int tile
         if (te.monsters[i].owner == 1) mP2 = te.monsters[i];
     }
 
-    int panelW = 220;
-    int panelH = 110;
-    int leftX = 60;
-    int rightX = screenWidth - 60 - panelW;
-    int y = 80;
+    int barX = 24;
+    int barY = 18;
+    int barW = screenWidth - 48;
+    int barH = 124;
+    int sideW = 240;
+    int sideH = 76;
+    int cardW = 240;
+    int cardH = 76;
+    int leftX = barX + 16;
+    int rightX = screenWidth - barX - 16 - sideW;
+    int centerX = (screenWidth - cardW) / 2;
+    int y = barY + 34;
 
     // reinicia o estado quando um novo portal começa a abrir
     if (portalOpening && !statusApplied)
@@ -476,64 +491,42 @@ void DrawMinimalBattleUI(int screenWidth, int screenHeight, int tileGX, int tile
     // atualizar contadores
     for (int i = 0; i < 2; i++) if (animActive[i]) { animElapsed[i]++; if (animElapsed[i] >= animDur) animActive[i] = false; }
 
-    // desenhar painel P1
-    DrawRectangleRounded((Rectangle){ (float)leftX, (float)y, (float)panelW, (float)panelH }, 0.12f, 8, Fade(ORANGE, 0.9f));
-    DrawRectangleLinesEx((Rectangle){ (float)leftX, (float)y, (float)panelW, (float)panelH }, 2.0f, BLACK);
-    int cx = leftX + 48;
-    int cy = y + panelH/2;
-    DrawCircle(cx, cy, 36, (Color){ 245, 180, 90, 255 });
+    DrawRectangleRounded((Rectangle){ (float)barX, (float)barY, (float)barW, (float)barH }, 0.10f, 10, (Color){ 14, 20, 32, 240 });
+    DrawRectangleLinesEx((Rectangle){ (float)barX, (float)barY, (float)barW, (float)barH }, 2.0f, (Color){ 250, 212, 102, 220 });
+    DrawText("BATTLE", barX + 18, barY + 12, 18, YELLOW);
+    DrawText(portalOpening ? "PORTAL ABRINDO" : (awaitingActivation ? "PORTAL ATIVO" : "DUEL MODE"), barX + 120, barY + 12, 16, RAYWHITE);
+
+    DrawRectangleRounded((Rectangle){ (float)leftX, (float)y, (float)sideW, (float)sideH }, 0.12f, 8, Fade(ORANGE, 0.92f));
+    DrawRectangleLinesEx((Rectangle){ (float)leftX, (float)y, (float)sideW, (float)sideH }, 2.0f, BLACK);
+    DrawCircle(leftX + 34, y + sideH / 2, 24, (Color){ 245, 180, 90, 255 });
     if (mP1.owner != -1) {
         Texture2D t = ObterBakuganTexture(mP1.type);
-        DrawTextureEx(t, (Vector2){ (float)(cx - 28), (float)(cy - 28) }, 0.0f, 0.56f, WHITE);
+        DrawTextureEx(t, (Vector2){ (float)leftX + 11.0f, (float)y + 10.0f }, 0.0f, 0.42f, WHITE);
     }
-    DrawText("P1", leftX + 96, y + 12, 18, BLACK);
+    DrawText("P1", leftX + 70, y + 9, 16, BLACK);
+    DrawText("G POWER", leftX + 70, y + 26, 12, BLACK);
     int displayP1 = mP1.owner != -1 ? (animActive[0] ? (int)LerpFloatLocal(0, (float)animTarget[0], (float)animElapsed[0]/(float)animDur) : mP1.power) : 0;
-    // destaque: maior, com sombra e pulso durante animação
-    {
-        float pulse = 1.0f;
-        int baseSize = animActive[0] ? 30 : 22;
-        if (animActive[0]) pulse = 1.0f + 0.15f * sinf(((float)animElapsed[0] / (float)animDur) * UI_PI);
-        int drawSize = (int)(baseSize * pulse);
-        int numX = leftX + 96;
-        int numY = y + 44;
-        DrawText(TextFormat("%d", displayP1), numX + 2, numY + 2, drawSize, BLACK);
-        DrawText(TextFormat("%d", displayP1), numX, numY, drawSize, GOLD);
-    }
+    DrawText(TextFormat("%d", displayP1), leftX + 122, y + 21, animActive[0] ? 26 : 22, GOLD);
 
-    // desenhar painel P2
-    DrawRectangleRounded((Rectangle){ (float)rightX, (float)y, (float)panelW, (float)panelH }, 0.12f, 8, Fade(RED, 0.9f));
-    DrawRectangleLinesEx((Rectangle){ (float)rightX, (float)y, (float)panelW, (float)panelH }, 2.0f, BLACK);
-    int cx2 = rightX + 48;
-    int cy2 = y + panelH/2;
-    DrawCircle(cx2, cy2, 36, (Color){ 240, 120, 120, 255 });
+    DrawRectangleRounded((Rectangle){ (float)rightX, (float)y, (float)sideW, (float)sideH }, 0.12f, 8, Fade(RED, 0.92f));
+    DrawRectangleLinesEx((Rectangle){ (float)rightX, (float)y, (float)sideW, (float)sideH }, 2.0f, BLACK);
+    DrawCircle(rightX + 34, y + sideH / 2, 24, (Color){ 240, 120, 120, 255 });
     if (mP2.owner != -1) {
         Texture2D t2 = ObterBakuganTexture(mP2.type);
-        DrawTextureEx(t2, (Vector2){ (float)(cx2 - 28), (float)(cy2 - 28) }, 0.0f, 0.56f, WHITE);
+        DrawTextureEx(t2, (Vector2){ (float)rightX + 11.0f, (float)y + 10.0f }, 0.0f, 0.42f, WHITE);
     }
-    DrawText("P2", rightX + 96, y + 12, 18, BLACK);
+    DrawText("P2", rightX + 70, y + 9, 16, BLACK);
+    DrawText("G POWER", rightX + 70, y + 26, 12, BLACK);
     int displayP2 = mP2.owner != -1 ? (animActive[1] ? (int)LerpFloatLocal(0, (float)animTarget[1], (float)animElapsed[1]/(float)animDur) : mP2.power) : 0;
-    // destaque: maior, com sombra e pulso durante animação
-    {
-        float pulse2 = 1.0f;
-        int baseSize2 = animActive[1] ? 30 : 22;
-        if (animActive[1]) pulse2 = 1.0f + 0.15f * sinf(((float)animElapsed[1] / (float)animDur) * UI_PI);
-        int drawSize2 = (int)(baseSize2 * pulse2);
-        int numX2 = rightX + 96;
-        int numY2 = y + 44;
-        DrawText(TextFormat("%d", displayP2), numX2 + 2, numY2 + 2, drawSize2, BLACK);
-        DrawText(TextFormat("%d", displayP2), numX2, numY2, drawSize2, GOLD);
-    }
+    DrawText(TextFormat("%d", displayP2), rightX + 122, y + 21, animActive[1] ? 26 : 22, GOLD);
 
-    // detalhe da carta no centro
-    int cardW = 140;
-    int cardH = 110;
-    int cardX = (screenWidth - cardW) / 2;
-    int cardY = y + panelH + 12;
-    DrawRectangle(cardX, cardY, cardW, cardH, (Color){ 20, 24, 32, 230 });
-    DrawRectangleLines(cardX, cardY, cardW, cardH, (Color){ 200, 180, 80, 220 });
-    DrawText("Carta no Chao", cardX + 10, cardY + 8, 14, YELLOW);
+    DrawRectangleRounded((Rectangle){ (float)centerX, (float)y - 4, (float)cardW, (float)cardH }, 0.12f, 8, (Color){ 26, 34, 50, 240 });
+    DrawRectangleLinesEx((Rectangle){ (float)centerX, (float)y - 4, (float)cardW, (float)cardH }, 2.0f, (Color){ 255, 221, 117, 220 });
+    DrawText("CARTA PORTAL", centerX + 14, y + 4, 12, YELLOW);
+    DrawText(CardTypeName(te.card.type), centerX + 14, y + 24, 18, RAYWHITE);
+    DrawText(TextFormat("P%d | SLOT %d", te.card.owner + 1, te.card.slot + 1), centerX + 14, y + 44, 12, SKYBLUE);
     Texture2D cardTex = ObterCartaTexturePorSlot(te.card.slot, te.card.type);
-    DrawTextureEx(cardTex, (Vector2){ (float)cardX + 8.0f, (float)cardY + 22.0f }, 0.0f, 0.52f, WHITE);
+    DrawTextureEx(cardTex, (Vector2){ (float)centerX + 160.0f, (float)y + 10.0f }, 0.0f, 0.32f, WHITE);
 }
 
 void DrawGameHints(int screenWidth, int screenHeight, const char *placeMessage)
