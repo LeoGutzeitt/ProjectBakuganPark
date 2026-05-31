@@ -58,7 +58,7 @@ static int CardStatToElement(int index)
         BAKUGAN_ELEMENT_AGUA,
         BAKUGAN_ELEMENT_TERRA,
         BAKUGAN_ELEMENT_LUZ,
-        BAKUGAN_ELEMENT_SOMBRA,
+        BAKUGAN_ELEMENT_ESCURO,
         BAKUGAN_ELEMENT_VENTO
     };
 
@@ -96,7 +96,7 @@ static void DrawBakuganBasePanel(int x, int y, int w, int h, int index)
     DrawText(TextFormat("Base %d", BasePowerForType(index)), x + 14, y + 74, 28, GOLD);
 }
 
-Texture2D ObterBakuganTexture(int index)
+static Texture2D ObterBakuganTextureMenu(int index)
 {
     if (index < 0 || index >= 12)
         return bakugans[0];
@@ -415,7 +415,7 @@ void DesenharMenu()
 
         DrawText("PREVIA DO BAKUGAN", (int)previewPanel.x + 28, (int)previewPanel.y + 18, 24, WHITE);
 
-        Texture2D previewTexture = ObterBakuganTexture(escolhaAtual);
+        Texture2D previewTexture = ObterBakuganTextureMenu(escolhaAtual);
         DrawTextureEx(
             previewTexture,
             (Vector2){ previewPanel.x + 34.0f, previewPanel.y + 84.0f },
@@ -448,7 +448,7 @@ void DesenharMenu()
 
             if (i < quantidadeEscolhida)
             {
-                Texture2D chosenTexture = ObterBakuganTexture(chosenIndex);
+                Texture2D chosenTexture = ObterBakuganTextureMenu(chosenIndex);
                 DrawTextureEx(chosenTexture, (Vector2){ (float)slotX + 10.0f, (float)slotY + 10.0f }, 0.0f, 0.45f, WHITE);
                 DrawText(TextFormat("%d", i + 1), slotX + 86, slotY + 8, 18, YELLOW);
             }

@@ -53,7 +53,7 @@ static Color GetTurnColor(int activePlayer)
 
 static const char *CardBonusElementLabel(int displayIndex)
 {
-    static const char *labels[6] = { "Fogo", "Agua", "Terra", "Luz", "Sombra", "Vento" };
+    static const char *labels[6] = { "Fogo", "Agua", "Terra", "Luz", "Escuro", "Vento" };
 
     if (displayIndex < 0 || displayIndex >= 6) return "?";
     return labels[displayIndex];
@@ -66,7 +66,7 @@ static int CardBonusElementToMonsterElement(int displayIndex)
         BAKUGAN_ELEMENT_AGUA,
         BAKUGAN_ELEMENT_TERRA,
         BAKUGAN_ELEMENT_LUZ,
-        BAKUGAN_ELEMENT_SOMBRA,
+        BAKUGAN_ELEMENT_ESCURO,
         BAKUGAN_ELEMENT_VENTO
     };
 

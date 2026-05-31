@@ -41,7 +41,7 @@ int CardBonusForPortalCard(int cardSlot, int cardType, int element)
 {
     // cardSlot: 0 = bronze, 1 = silver, 2 = gold
     // cardType: 0 = card 1, 1 = card 2, 2 = card 3
-    // elementos seguindo esta ordem: fogo, agua, terra, luz, sombra, vento
+    // elementos seguindo esta ordem: fogo, agua, terra, luz, escuro, vento
     static const int bonus[3][3][BAKUGAN_ELEMENT_COUNT] = {
         {
             { 20, 80, 140, 110, 60, 50 },

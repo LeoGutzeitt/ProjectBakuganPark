@@ -208,14 +208,24 @@ static bool TryMoveCollidedMonsterToAdjacentCard(int sourceGX, int sourceGZ, int
 
     return false;
 }
-
 static int ElementoPelaEscolhaDoMenu(int escolha)
 {
     if (escolha <= 1) return BAKUGAN_ELEMENT_VENTO;
     if (escolha <= 3) return BAKUGAN_ELEMENT_AGUA;
     if (escolha <= 5) return BAKUGAN_ELEMENT_TERRA;
     if (escolha <= 7) return BAKUGAN_ELEMENT_FOGO;
-    if (escolha <= 9) return BAKUGAN_ELEMENT_SOMBRA;
+    if (escolha <= 9) return BAKUGAN_ELEMENT_ESCURO;
+
+    return BAKUGAN_ELEMENT_LUZ;
+}
+
+static int aEscolhaDoMenu(int escolha)
+{
+    if (escolha <= 1) return BAKUGAN_ELEMENT_VENTO;
+    if (escolha <= 3) return BAKUGAN_ELEMENT_AGUA;
+    if (escolha <= 5) return BAKUGAN_ELEMENT_TERRA;
+    if (escolha <= 7) return BAKUGAN_ELEMENT_FOGO;
+    if (escolha <= 9) return BAKUGAN_ELEMENT_ESCURO;
 
     return BAKUGAN_ELEMENT_LUZ;
 }
@@ -452,10 +462,9 @@ int main(void)
 
     Texture2D playerTexture = LoadTexture("img/carta-base.png");
     
-    Texture2D monsterStage0 = LoadTexture("img/monster.png");
-    Texture2D monsterStage1 = LoadTexture("img/monster1.png");
-    Texture2D monsterStage2 = LoadTexture("img/monster2.png");
+    
     CarregarMenu();
+    CarregarAnimacoesBakugan();
 
     // =========================
     // ANIMAÇÃO
@@ -1009,7 +1018,9 @@ int main(void)
                         &monsterAnim,
                         finalSide,
                         (Vector3){ targetX + randomX, 4.0f, targetZ + randomZ },
-                        animationTarget
+                        animationTarget,
+                        deckSetup.monsterTypes[monsterPlacement.player][monsterPlacement.slot],
+                        deckSetup.monsterElements[monsterPlacement.player][monsterPlacement.slot]
                     );
 
                     RemoverMonstroJogadorDaMao(monsterPlacement.player, monsterPlacement.slot);
@@ -1265,20 +1276,7 @@ int main(void)
 
         DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ, battleInProgress);
 
-        Texture2D currentTexture;
-        if (transformStage == 0)
-        {
-            currentTexture = monsterStage0;
-        }
-        else if (transformStage == 1)
-        {
-            currentTexture = monsterStage1;
-        }
-        else
-        {
-            currentTexture = monsterStage2;
-        }
-
+        
         if (!battleInProgress)
         {
             Vector3 cardPos = { playerX, 0.5f, playerZ };
@@ -1391,13 +1389,10 @@ int main(void)
 
         if (monsterAnim.active)
         {
-            DesenharMonstroBillboard(
+            DesenharAnimacaoMonstroBillboard(
                 camera,
-                currentTexture,
-                monsterAnim.position,
-                (Vector2){ 1.2f, 1.2f },
-                -1,
-                monsterAnim.side
+                &monsterAnim,
+                (Vector2){ 1.2f, 1.2f }
             );
         }
 
@@ -1515,9 +1510,7 @@ int main(void)
 
     UnloadModel(cardModel);
     UnloadTexture(playerTexture);
-    UnloadTexture(monsterStage0);
-    UnloadTexture(monsterStage1);
-    UnloadTexture(monsterStage2);
+    DescarregarAnimacoesBakugan();
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
     DescarregarMenu();
