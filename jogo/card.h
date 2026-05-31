@@ -32,6 +32,8 @@ const char *CardTypeName(int type);
 
 void ConfigureCardModel(Model *cardModel, Texture2D texture);
 void DrawCardModelAt(const Model *cardModel, Vector3 position);
+void DrawCardModelAtWithTexture(const Model *cardModel, Texture2D texture, Vector3 position);
+void DrawCardModelExWithTexture(const Model *cardModel, Texture2D texture, Vector3 position, Vector3 axis, float angle, Vector3 scale);
 void DrawPlacedCard(Vector3 position, Color color);
 
 #endif // fim de CARD_H

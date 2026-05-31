@@ -12,6 +12,24 @@ void DrawCardModelAt(const Model *cardModel, Vector3 position)
     DrawModel(*cardModel, position, 1.0f, WHITE);
 }
 
+void DrawCardModelAtWithTexture(const Model *cardModel, Texture2D texture, Vector3 position)
+{
+    if (!cardModel) return;
+
+    Model card = *cardModel;
+    card.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
+    DrawModel(card, position, 1.0f, WHITE);
+}
+
+void DrawCardModelExWithTexture(const Model *cardModel, Texture2D texture, Vector3 position, Vector3 axis, float angle, Vector3 scale)
+{
+    if (!cardModel) return;
+
+    Model card = *cardModel;
+    card.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
+    DrawModelEx(card, position, axis, angle, scale, WHITE);
+}
+
 void DrawPlacedCard(Vector3 position, Color color)
 {
     DrawCube(position, 1.8f, 0.05f, 2.4f, color);

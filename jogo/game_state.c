@@ -134,6 +134,22 @@ bool ColocarMonstroEm(int gx, int gz, int owner, int slot, int type, int element
     return true;
 }
 
+bool AtualizarPoderMonstroNoTile(int gx, int gz, int owner, int slot, int power)
+{
+    TileEntity *tile = GetTilePtr(gx, gz);
+    if (!tile) return false;
+
+    for (int i = 0; i < tile->monsterCount; i++) {
+        MonsterPlacement *monster = &tile->monsters[i];
+        if (monster->owner == owner && monster->slot == slot) {
+            monster->power = power;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void LimparTile(int gx, int gz)
 {
     TileEntity *tile = GetTilePtr(gx, gz);

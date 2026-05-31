@@ -120,9 +120,10 @@ static Vector3 LerpVector3(Vector3 start, Vector3 end, float amount)
     };
 }
 
-static bool BatalhaEmAndamento(bool battleAwaitingActivation, int battleResolveTimer, int battleResolveGX, int battleResolveGZ)
+static bool BatalhaEmAndamento(bool battlePortalOpening, bool battleAwaitingActivation, int battleResolveTimer, int battleResolveGX, int battleResolveGZ)
 {
-    return battleAwaitingActivation ||
+    return battlePortalOpening ||
+           battleAwaitingActivation ||
            battleResolveTimer > 0 ||
            (battleResolveGX != -1 && battleResolveGZ != -1);
 }
@@ -219,6 +220,129 @@ static int ElementoPelaEscolhaDoMenu(int escolha)
     return BAKUGAN_ELEMENT_LUZ;
 }
 
+static int BonusPorCartaPortal(int cardType)
+{
+    switch (cardType)
+    {
+        case CARD_TYPE_ATAQUE: return 18;
+        case CARD_TYPE_DEFESA: return 14;
+        case CARD_TYPE_ENERGIA: return 16;
+        case CARD_TYPE_ARMADILHA: return 20;
+        case CARD_TYPE_FOCO: return 12;
+        case CARD_TYPE_SUPORTE: return 15;
+        default: return 10;
+    }
+}
+
+static int BonusPorTipoBakugan(int type)
+{
+    return 8 + ((type % 2) * 4) + ((type / 2) * 2);
+}
+
+static int BonusPorElementoBakugan(int element)
+{
+    static const int bonuses[BAKUGAN_ELEMENT_COUNT] = { 12, 14, 16, 13, 17, 19 };
+
+    if (element < 0 || element >= BAKUGAN_ELEMENT_COUNT)
+        return 0;
+
+    return bonuses[element];
+}
+
+static Color CardRevealColor(int cardType)
+{
+    switch (cardType)
+    {
+        case CARD_TYPE_ATAQUE: return (Color){ 235, 125, 105, 255 };
+        case CARD_TYPE_DEFESA: return (Color){ 115, 150, 235, 255 };
+        case CARD_TYPE_ENERGIA: return (Color){ 240, 205, 100, 255 };
+        case CARD_TYPE_ARMADILHA: return (Color){ 150, 110, 220, 255 };
+        case CARD_TYPE_FOCO: return (Color){ 90, 190, 170, 255 };
+        case CARD_TYPE_SUPORTE: return (Color){ 110, 205, 125, 255 };
+        default: return RAYWHITE;
+    }
+}
+
+static int CalcularPoderComPortal(CardPlacement portalCard, MonsterPlacement monster)
+{
+    return 100 +
+           BonusPorTipoBakugan(monster.type) +
+           BonusPorElementoBakugan(monster.element) +
+           BonusPorCartaPortal(portalCard.type);
+}
+
+static void AplicarStatusDaCartaPortal(int gx, int gz)
+{
+    TileEntity battleTile = ObterTileEm(gx, gz);
+
+    if (battleTile.card.owner == -1)
+        return;
+
+    for (int i = 0; i < battleTile.monsterCount; i++)
+    {
+        MonsterPlacement monster = battleTile.monsters[i];
+        int power = CalcularPoderComPortal(battleTile.card, monster);
+        AtualizarPoderMonstroNoTile(gx, gz, monster.owner, monster.slot, power);
+    }
+}
+
+static void DrawBattlePortalOverlay(int screenWidth, int screenHeight, TileEntity battleTile, bool portalOpening, int battlePortalTimer, int battlePortalTotalFrames)
+{
+    float progress = 1.0f;
+
+    if (portalOpening && battlePortalTotalFrames > 0)
+    {
+        progress = 1.0f - ((float)battlePortalTimer / (float)battlePortalTotalFrames);
+        if (progress < 0.0f) progress = 0.0f;
+        if (progress > 1.0f) progress = 1.0f;
+    }
+
+    DrawRectangle(0, 0, screenWidth, screenHeight, (Color){ 6, 8, 14, 135 });
+
+    int panelW = 760;
+    int panelH = 286;
+    int panelX = (screenWidth - panelW) / 2;
+    int panelY = 88;
+
+    DrawRectangleRounded((Rectangle){ (float)panelX, (float)panelY, (float)panelW, (float)panelH }, 0.12f, 12, (Color){ 20, 28, 44, 245 });
+    DrawRectangleLinesEx((Rectangle){ (float)panelX, (float)panelY, (float)panelW, (float)panelH }, 2.0f, (Color){ 250, 212, 102, 220 });
+
+    DrawText(portalOpening ? "CARTA PORTAL EM ABERTURA" : "CARTA PORTAL ABERTA", panelX + 24, panelY + 18, 28, (Color){ 255, 221, 117, 255 });
+    DrawText(portalOpening ? "Aguarde o portal se abrir antes do duelo" : "Status aplicados. Pressione F/L para ativar", panelX + 24, panelY + 52, 18, RAYWHITE);
+
+    float coreX = panelX + panelW * 0.5f;
+    float coreY = panelY + 138.0f;
+    float coreRadius = 42.0f + progress * 30.0f;
+
+    DrawCircleV((Vector2){ coreX, coreY }, coreRadius, Fade(SKYBLUE, 0.6f));
+    DrawCircleLines((int)coreX, (int)coreY, coreRadius + 8.0f, WHITE);
+
+    float spread = 150.0f + progress * 70.0f;
+    DrawRectangle(panelX + 156 - (int)spread, panelY + 92, 130, 92, Fade(ORANGE, 0.92f));
+    DrawRectangle(panelX + 156 + (int)(progress * 8.0f), panelY + 92, 130, 92, Fade(RED, 0.92f));
+
+    if (battleTile.monsterCount > 0)
+    {
+        for (int m = 0; m < battleTile.monsterCount && m < 2; m++)
+        {
+            int cardX = panelX + 410 + (m * 160);
+            int cardY = panelY + 94;
+            MonsterPlacement monster = battleTile.monsters[m];
+
+            DrawRectangle(cardX, cardY, 138, 122, (Color){ 255, 255, 255, 20 });
+            DrawRectangleLines(cardX, cardY, 138, 122, monster.owner == 0 ? ORANGE : RED);
+
+            Texture2D portrait = ObterBakuganTexture(monster.type);
+            DrawTextureEx(portrait, (Vector2){ (float)cardX + 8.0f, (float)cardY + 12.0f }, 0.0f, 0.32f, WHITE);
+
+            DrawText(TextFormat("P%d", monster.owner + 1), cardX + 66, cardY + 12, 18, YELLOW);
+            DrawText(BakuganTypeName(monster.type), cardX + 66, cardY + 34, 16, RAYWHITE);
+            DrawText(BakuganElementName(monster.element), cardX + 66, cardY + 54, 16, SKYBLUE);
+            DrawText(TextFormat("Poder %d", monster.power), cardX + 66, cardY + 78, 16, GOLD);
+        }
+    }
+}
+
 int main(void)
 {
     const int screenWidth = 1880;
@@ -307,6 +431,10 @@ int main(void)
     int battleResolveTimer = 0;
     int battleResolveGX = -1;
     int battleResolveGZ = -1;
+    bool battlePortalOpening = false;
+    int battlePortalTimer = 0;
+    const int BATTLE_PORTAL_FRAMES = 75;
+    bool battlePortalStatusApplied = false;
     // batalha requer ativação pelos donos das cartas
     bool battleAwaitingActivation = false;
     bool battleActivatedByPlayer[2] = { false, false };
@@ -412,6 +540,9 @@ int main(void)
                 battleResolveTimer = 0;
                 battleResolveGX = -1;
                 battleResolveGZ = -1;
+                battlePortalOpening = false;
+                battlePortalTimer = 0;
+                battlePortalStatusApplied = false;
                 battleAwaitingActivation = false;
                 battleActivatedByPlayer[0] = false;
                 battleActivatedByPlayer[1] = false;
@@ -593,6 +724,9 @@ int main(void)
                         battleResolveGX = -1;
                         battleResolveGZ = -1;
                         battleResolveTimer = 0;
+                        battlePortalOpening = false;
+                        battlePortalTimer = 0;
+                        battlePortalStatusApplied = false;
                         battleAwaitingActivation = false;
                         battleActivatedByPlayer[0] = false;
                         battleActivatedByPlayer[1] = false;
@@ -615,6 +749,33 @@ int main(void)
                 battleResolveGX = -1;
                 battleResolveGZ = -1;
                 battleMessage[0] = '\0';
+                battlePortalOpening = false;
+                battlePortalTimer = 0;
+                battlePortalStatusApplied = false;
+            }
+        }
+
+        if (battlePortalOpening)
+        {
+            if (battlePortalTimer > 0)
+                battlePortalTimer--;
+
+            if (battlePortalTimer <= 0)
+            {
+                battlePortalOpening = false;
+
+                if (!battlePortalStatusApplied && battleResolveGX != -1 && battleResolveGZ != -1)
+                {
+                    AplicarStatusDaCartaPortal(battleResolveGX, battleResolveGZ);
+                    battlePortalStatusApplied = true;
+                }
+
+                if (battleResolveGX != -1 && battleResolveGZ != -1)
+                {
+                    VerificarVencedorBatalhaNoTile(battleResolveGX, battleResolveGZ, &battleWinnerOwner);
+                }
+
+                battleAwaitingActivation = true;
             }
         }
 
@@ -622,7 +783,7 @@ int main(void)
         // MOVIMENTO
         // =========================
 
-        bool battleInProgress = BatalhaEmAndamento(battleAwaitingActivation, battleResolveTimer, battleResolveGX, battleResolveGZ);
+        bool battleInProgress = BatalhaEmAndamento(battlePortalOpening, battleAwaitingActivation, battleResolveTimer, battleResolveGX, battleResolveGZ);
 
         if (!monsterPlacement.active && !placementChoice.active && !battleInProgress)
         {
@@ -893,14 +1054,16 @@ int main(void)
                     }
                     else
                     {
-                        snprintf(battleMessage, sizeof(battleMessage) - 1, "Batalha!");
                         battleResolveGX = monsterPlacement.gx;
                         battleResolveGZ = monsterPlacement.gz;
-                        battleAwaitingActivation = true;
+                        battlePortalOpening = true;
+                        battlePortalTimer = BATTLE_PORTAL_FRAMES;
+                        battlePortalStatusApplied = false;
+                        battleAwaitingActivation = false;
                         battleActivatedByPlayer[0] = false;
                         battleActivatedByPlayer[1] = false;
                         battleWinnerOwner = -1;
-                        VerificarVencedorBatalhaNoTile(battleResolveGX, battleResolveGZ, &battleWinnerOwner);
+                        snprintf(battleMessage, sizeof(battleMessage) - 1, "Carta portal abrindo...");
                     }
 
                     monsterPlacement.active = false;
@@ -1124,7 +1287,37 @@ int main(void)
 
                 if (te.card.owner != -1)
                 {
-                    DrawCardModelAt(&cardModel, (Vector3){ ex, 0.03f, ez });
+                    bool battleTileActive = (gx == battleResolveGX && gz == battleResolveGZ && (battlePortalOpening || battleAwaitingActivation || battleResolveTimer > 0));
+
+                    if (battleTileActive)
+                    {
+                        Texture2D cardTexture = ObterCartaTexturePorSlot(te.card.slot, te.card.type);
+
+                        if (battlePortalOpening)
+                        {
+                            float flipProgress = 1.0f - ((float)battlePortalTimer / (float)BATTLE_PORTAL_FRAMES);
+                            if (flipProgress < 0.0f) flipProgress = 0.0f;
+                            if (flipProgress > 1.0f) flipProgress = 1.0f;
+
+                            float cardAngle = 90.0f * (1.0f - flipProgress);
+                            DrawCardModelExWithTexture(
+                                &cardModel,
+                                cardTexture,
+                                (Vector3){ ex, 0.04f + (0.03f * flipProgress), ez },
+                                (Vector3){ 0.0f, 1.0f, 0.0f },
+                                cardAngle,
+                                (Vector3){ 1.0f, 1.0f, 1.0f }
+                            );
+                        }
+                        else
+                        {
+                            DrawCardModelAtWithTexture(&cardModel, cardTexture, (Vector3){ ex, 0.03f, ez });
+                        }
+                    }
+                    else
+                    {
+                        DrawCardModelAtWithTexture(&cardModel, playerTexture, (Vector3){ ex, 0.03f, ez });
+                    }
 
                     if (monsterPlacement.active &&
                         gx == monsterPlacement.gx &&
@@ -1172,9 +1365,10 @@ int main(void)
                                 }
                             }
 
+                            Texture2D battleTexture = ObterBakuganTexture(te.monsters[m].type);
                             DesenharMonstroBillboard(
                                 camera,
-                                currentTexture,
+                                battleTexture,
                                 monsterPos,
                                 (Vector2){ monsterScale, monsterScale },
                                 side
@@ -1203,6 +1397,22 @@ int main(void)
 
         DrawBottomMenu(screenWidth, screenHeight, activePlayer, playerCards, playerMonsters);
 
+        if ((battlePortalOpening || battleAwaitingActivation) && battleResolveGX != -1 && battleResolveGZ != -1)
+        {
+            TileEntity bt = ObterTileEm(battleResolveGX, battleResolveGZ);
+            DrawBattlePortalOverlay(screenWidth, screenHeight, bt, battlePortalOpening, battlePortalTimer, BATTLE_PORTAL_FRAMES);
+
+            DrawBattleCardPreview(
+                screenWidth,
+                screenHeight,
+                bt.card.owner,
+                bt.card.type,
+                bt.card.slot,
+                ObterCartaTexturePorSlot(bt.card.slot, bt.card.type),
+                battlePortalOpening
+            );
+        }
+
         if (battleAwaitingActivation && battleResolveGX != -1)
         {
             TileEntity bt = ObterTileEm(battleResolveGX, battleResolveGZ);
@@ -1226,9 +1436,18 @@ int main(void)
         }
 
         if (marcadoGX != -1 && marcadoGZ != -1 && !battleInProgress)
+        if (marcadoGX != -1 && marcadoGZ != -1 && !battleInProgress)
         {
             bool canPickMonster = (ContarCartasJogadorNoMapa(activePlayer) > 0);
-            DrawSelectionMenu(screenWidth, screenHeight, canPickMonster, activePlayer);
+            DrawSelectionMenu(
+                screenWidth,
+                screenHeight,
+                canPickMonster,
+                activePlayer,
+                deckSetup.cardTypes[activePlayer],
+                deckSetup.monsterTypes[activePlayer],
+                deckSetup.monsterElements[activePlayer]
+            );
         }
 
         if (placementChoice.active && !battleInProgress)
@@ -1243,7 +1462,10 @@ int main(void)
                 placementChoice.player,
                 slots,
                 placementChoice.slot,
-                placementChoice.type == PLACEMENT_MONSTER
+                placementChoice.type == PLACEMENT_MONSTER,
+                deckSetup.cardTypes[placementChoice.player],
+                deckSetup.monsterTypes[placementChoice.player],
+                deckSetup.monsterElements[placementChoice.player]
             );
         }
 

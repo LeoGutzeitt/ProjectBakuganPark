@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "raylib.h"
+#include "monster.h"
 
 static EstadoMenu estadoAtual = MENU_INICIO;
 
@@ -28,6 +29,39 @@ int cartasOuroEscolhidas[2];
 bool MenuFinalizado()
 {
     return menuFinalizado;
+}
+
+static bool BakuganJaEscolhido(int jogador, int escolha)
+{
+    for (int i = 0; i < quantidadeEscolhida; i++)
+    {
+        if (bakugansEscolhidos[jogador][i] == escolha)
+            return true;
+    }
+
+    return false;
+}
+
+Texture2D ObterBakuganTexture(int index)
+{
+    if (index < 0 || index >= 12)
+        return bakugans[0];
+
+    return bakugans[index];
+}
+
+Texture2D ObterCartaTexturePorSlot(int slot, int escolha)
+{
+    if (escolha < 0 || escolha >= 3)
+        escolha = 0;
+
+    if (slot <= 0)
+        return bronzeCards[escolha];
+
+    if (slot == 1)
+        return prataCards[escolha];
+
+    return ouroCards[escolha];
 }
 
 void AtualizarMenu()
@@ -318,6 +352,11 @@ void DesenharMenu()
 
     if (estadoAtual == MENU_BAKUGAN)
     {
+        Rectangle previewPanel = { 900.0f, 150.0f, 860.0f, 620.0f };
+
+        DrawRectangleRec(previewPanel, (Color){ 34, 43, 62, 255 });
+        DrawRectangleLinesEx(previewPanel, 2.0f, (Color){ 255, 221, 117, 255 });
+
         DrawText(
             TextFormat(
                 "JOGADOR %d ESCOLHA SEUS BAKUGANS (%d/3)",
@@ -329,6 +368,52 @@ void DesenharMenu()
             35,
             YELLOW
         );
+
+        DrawText("PREVIA DO BAKUGAN", (int)previewPanel.x + 28, (int)previewPanel.y + 18, 24, WHITE);
+
+        Texture2D previewTexture = ObterBakuganTexture(escolhaAtual);
+        DrawTextureEx(
+            previewTexture,
+            (Vector2){ previewPanel.x + 34.0f, previewPanel.y + 84.0f },
+            0.0f,
+            1.35f,
+            WHITE
+        );
+
+        DrawRectangleLinesEx(
+            (Rectangle){ previewPanel.x + 30.0f, previewPanel.y + 80.0f, (float)(previewTexture.width * 1.35f) + 8.0f, (float)(previewTexture.height * 1.35f) + 8.0f },
+            2.0f,
+            (Color){ 255, 255, 255, 70 }
+        );
+
+        DrawText(BakuganTypeName(escolhaAtual), (int)previewPanel.x + 360, (int)previewPanel.y + 98, 34, WHITE);
+        DrawText(TextFormat("Selecao atual: %d/3", quantidadeEscolhida + 1), (int)previewPanel.x + 360, (int)previewPanel.y + 146, 22, SKYBLUE);
+        DrawText("Use ENTER para confirmar", (int)previewPanel.x + 360, (int)previewPanel.y + 182, 18, RAYWHITE);
+
+        DrawText("Escolhidos deste jogador", (int)previewPanel.x + 360, (int)previewPanel.y + 246, 22, YELLOW);
+
+        for (int i = 0; i < 3; i++)
+        {
+            int chosenIndex = bakugansEscolhidos[jogadorAtual][i];
+            int slotX = (int)previewPanel.x + 360 + i * 150;
+            int slotY = (int)previewPanel.y + 286;
+
+            DrawRectangle(slotX, slotY, 124, 124, (Color){ 255, 255, 255, 20 });
+            DrawRectangleLines(slotX, slotY, 124, 124, i < quantidadeEscolhida ? GREEN : (Color){ 255, 255, 255, 60 });
+
+            if (i < quantidadeEscolhida)
+            {
+                Texture2D chosenTexture = ObterBakuganTexture(chosenIndex);
+                DrawTextureEx(chosenTexture, (Vector2){ (float)slotX + 10.0f, (float)slotY + 10.0f }, 0.0f, 0.45f, WHITE);
+                DrawText(TextFormat("%d", i + 1), slotX + 86, slotY + 8, 18, YELLOW);
+            }
+            else
+            {
+                DrawText(TextFormat("%d", i + 1), slotX + 54, slotY + 52, 18, DARKGRAY);
+            }
+        }
+
+        DrawText("Grades com borda verde ja foram escolhidas", (int)previewPanel.x + 360, (int)previewPanel.y + 448, 16, (Color){ 180, 235, 180, 255 });
 
         for (int i = 0; i < 12; i++)
         {
@@ -345,6 +430,14 @@ void DesenharMenu()
                 0.35f,
                 WHITE
             );
+
+            bool alreadyChosen = BakuganJaEscolhido(jogadorAtual, i);
+
+            if (alreadyChosen)
+            {
+                DrawRectangle(x, y, (int)(bakugans[i].width * 0.35f), (int)(bakugans[i].height * 0.35f), (Color){ 70, 140, 70, 70 });
+                DrawRectangleLines(x - 2, y - 2, (int)(bakugans[i].width * 0.35f) + 4, (int)(bakugans[i].height * 0.35f) + 4, GREEN);
+            }
 
             if (i == escolhaAtual)
             {

@@ -27,6 +27,7 @@ int SlotCartaDisponivelJogador(int player);
 bool PodeColocarCartaEm(int gx, int gz);
 bool ColocarCartaEm(int gx, int gz, int owner, int slot, int type);
 bool ColocarMonstroEm(int gx, int gz, int owner, int slot, int type, int element, MonsterSide side);
+bool AtualizarPoderMonstroNoTile(int gx, int gz, int owner, int slot, int power);
 
 // Resolve a batalha quando um tile tem 2 monstros.
 // Retorna true quando o tile foi resolvido e limpo.

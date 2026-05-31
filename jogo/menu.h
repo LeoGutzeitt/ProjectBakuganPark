@@ -2,6 +2,7 @@
 #define MENU_H
 
 #include <stdbool.h>
+#include "raylib.h"
 
 typedef enum
 {
@@ -18,6 +19,8 @@ void DesenharMenu();
 void CarregarMenu();
 void DescarregarMenu();
 void ReiniciarMenu();
+Texture2D ObterBakuganTexture(int index);
+Texture2D ObterCartaTexturePorSlot(int slot, int escolha);
 
 bool MenuFinalizado();
 
