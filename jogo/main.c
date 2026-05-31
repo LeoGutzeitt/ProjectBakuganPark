@@ -36,6 +36,19 @@ typedef struct {
     int slot;
 } PlacementChoiceState;
 
+typedef struct {
+    bool active;
+    MonsterPlacement monster;
+    int fromGX;
+    int fromGZ;
+    int toGX;
+    int toGZ;
+    Vector3 start;
+    Vector3 target;
+    Vector3 position;
+    float t;
+} CollisionDisplacementAnimation;
+
 static int FindFirstAvailableSlot(const int slots[3])
 {
     for (int slot = 0; slot < 3; slot++) {
@@ -173,7 +186,14 @@ static bool TileHasMonsterOnSide(TileEntity tile, MonsterSide side, MonsterPlace
     return false;
 }
 
-static bool TryMoveCollidedMonsterToAdjacentCard(int sourceGX, int sourceGZ, int gridX, int gridZ, MonsterPlacement collided)
+static bool TryMoveCollidedMonsterToAdjacentCard(
+    int sourceGX,
+    int sourceGZ,
+    int gridX,
+    int gridZ,
+    MonsterPlacement collided,
+    int *outGX,
+    int *outGZ)
 {
     static const int dirs[4][2] = {
         { 1, 0 },
@@ -202,12 +222,109 @@ static bool TryMoveCollidedMonsterToAdjacentCard(int sourceGX, int sourceGZ, int
                 collided.side))
         {
             RemoverMonstroTilePorDonoSlot(sourceGX, sourceGZ, collided.owner, collided.slot);
+
+            if (outGX) *outGX = nx;
+            if (outGZ) *outGZ = nz;
+
             return true;
         }
     }
 
     return false;
 }
+
+static Vector3 ComputeMonsterWorldPosition(
+    int gx,
+    int gz,
+    float tileWidth,
+    float tileDepth,
+    float offsetX,
+    float offsetZ,
+    MonsterSide side,
+    int stackIndex)
+{
+    float x, z;
+
+    GridToWorld(
+        gx,
+        gz,
+        tileWidth,
+        tileDepth,
+        offsetX,
+        offsetZ,
+        &x,
+        &z
+    );
+
+    float zOffset = (side == MONSTER_SIDE_LEFT) ? -0.78f : 0.78f;
+    float yOffset = (side == MONSTER_SIDE_LEFT) ? 0.68f : 0.56f;
+
+    return (Vector3){
+        x,
+        yOffset + (0.08f * stackIndex),
+        z + zOffset
+    };
+}
+
+static void IniciarAnimacaoColisao(
+    CollisionDisplacementAnimation *anim,
+    MonsterPlacement monster,
+    int fromGX,
+    int fromGZ,
+    int toGX,
+    int toGZ,
+    Vector3 start,
+    Vector3 target)
+{
+    if (!anim) return;
+
+    anim->active = true;
+    anim->monster = monster;
+    anim->fromGX = fromGX;
+    anim->fromGZ = fromGZ;
+    anim->toGX = toGX;
+    anim->toGZ = toGZ;
+    anim->start = start;
+    anim->target = target;
+    anim->position = start;
+    anim->t = 0.0f;
+}
+
+static void AtualizarAnimacaoColisao(CollisionDisplacementAnimation *anim)
+{
+    if (!anim || !anim->active) return;
+
+    anim->t += GetFrameTime() * 2.6f;
+
+    if (anim->t >= 1.0f)
+    {
+        anim->t = 1.0f;
+        anim->active = false;
+    }
+
+    float t = anim->t;
+    float smooth = t * t * (3.0f - 2.0f * t);
+    float arc = sinf(t * 3.14159f) * 0.35f;
+
+    anim->position.x = LerpFloat(anim->start.x, anim->target.x, smooth);
+    anim->position.y = LerpFloat(anim->start.y, anim->target.y, smooth) + arc;
+    anim->position.z = LerpFloat(anim->start.z, anim->target.z, smooth);
+}
+
+static bool DeveEsconderMonstroDeslocado(
+    CollisionDisplacementAnimation *anim,
+    int gx,
+    int gz,
+    MonsterPlacement monster)
+{
+    if (!anim || !anim->active) return false;
+
+    return gx == anim->toGX &&
+           gz == anim->toGZ &&
+           monster.owner == anim->monster.owner &&
+           monster.slot == anim->monster.slot;
+}
+
 static int ElementoPelaEscolhaDoMenu(int escolha)
 {
     if (escolha <= 1) return BAKUGAN_ELEMENT_VENTO;
@@ -472,6 +589,7 @@ int main(void)
     MonsterAnimation monsterAnim = CriarAnimacaoMonstro();
     MonsterPlacementChallenge monsterPlacement = {0};
     PlacementChoiceState placementChoice = {0};
+    CollisionDisplacementAnimation collisionAnim = {0};
     bool pendingKnockout = false;
     int pendingKnockoutOwner = -1;
     
@@ -572,6 +690,7 @@ int main(void)
                 transformStage = 0;
                 transformTimer = 0;
                 monsterAnim.active = false;
+                collisionAnim.active = false;
 
                 placeMessage[0] = '\0';
                 battleMessage[0] = '\0';
@@ -669,6 +788,7 @@ int main(void)
         // =========================
 
         AtualizarTransformacaoMonstro(&transforming, &transformTimer, &transformStage);
+        AtualizarAnimacaoColisao(&collisionAnim);
 
         // =========================
         // RESOLVE BATALHA
@@ -753,6 +873,7 @@ int main(void)
                         transformStage = 0;
                         transformTimer = 0;
                         monsterAnim.active = false;
+                collisionAnim.active = false;
                         screen = TELA_VITORIA;
                         continue;
                     }
@@ -939,14 +1060,52 @@ int main(void)
 
                 if (sideConflict)
                 {
+                    int displacedGX = -1;
+                    int displacedGZ = -1;
+
                     if (TryMoveCollidedMonsterToAdjacentCard(
                             monsterPlacement.gx,
                             monsterPlacement.gz,
                             gridSizeX,
                             gridSizeZ,
-                            collidedMonster))
+                            collidedMonster,
+                            &displacedGX,
+                            &displacedGZ))
                     {
                         collisionDisplaced = true;
+
+                        Vector3 startPos = ComputeMonsterWorldPosition(
+                            monsterPlacement.gx,
+                            monsterPlacement.gz,
+                            tileWidth,
+                            tileDepth,
+                            offsetX,
+                            offsetZ,
+                            collidedMonster.side,
+                            0
+                        );
+
+                        Vector3 targetPos = ComputeMonsterWorldPosition(
+                            displacedGX,
+                            displacedGZ,
+                            tileWidth,
+                            tileDepth,
+                            offsetX,
+                            offsetZ,
+                            collidedMonster.side,
+                            0
+                        );
+
+                        IniciarAnimacaoColisao(
+                            &collisionAnim,
+                            collidedMonster,
+                            monsterPlacement.gx,
+                            monsterPlacement.gz,
+                            displacedGX,
+                            displacedGZ,
+                            startPos,
+                            targetPos
+                        );
                     }
                     else
                     {
@@ -1344,6 +1503,11 @@ int main(void)
                 {
                     for (int m = 0; m < te.monsterCount; m++)
                     {
+                        if (DeveEsconderMonstroDeslocado(&collisionAnim, gx, gz, te.monsters[m]))
+                        {
+                            continue;
+                        }
+
                         bool isBattleTile =
                             (battleResolveTimer > 0 &&
                              gx == battleResolveGX &&
@@ -1397,6 +1561,20 @@ int main(void)
                     }
                 }
             }
+        }
+
+        if (collisionAnim.active)
+        {
+            Texture2D collisionTexture = ObterBakuganTexture(collisionAnim.monster.type);
+
+            DesenharMonstroBillboard(
+                camera,
+                collisionTexture,
+                collisionAnim.position,
+                (Vector2){ 1.2f, 1.2f },
+                collisionAnim.monster.type,
+                collisionAnim.monster.side
+            );
         }
 
         if (monsterAnim.active)

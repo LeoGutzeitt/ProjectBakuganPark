@@ -718,7 +718,25 @@ MonsterPlacement MakeMonsterPlacement(int owner, int slot, int type, int element
 
 int BasePowerForType(int type)
 {
-    return 100;
+    static const int power[BAKUGAN_TYPE_COUNT] = {
+        200, // vento1
+        120, // vento2
+        210, // agua1
+        130, // agua2
+        310,  // terra1
+        250, // terra2
+        140, // fogo1
+        260, // fogo2
+        280,  // escuro1
+        170, // escuro2
+        230, // luz1
+        180  // luz2
+    };
+
+    if (type < 0 || type >= BAKUGAN_TYPE_COUNT)
+        return 1000;
+
+    return power[type];
 }
 
 MonsterPlacement EmptyMonsterPlacement(void)
