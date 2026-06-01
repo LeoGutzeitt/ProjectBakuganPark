@@ -1273,7 +1273,7 @@ int main(void)
             marcadoGX != -1 &&
             marcadoGZ != -1)
         {
-            bool canPlaceMonster = (ContarCartasJogadorNoMapa(activePlayer) > 0);
+            bool canPlaceMonster = (ContarCartasNoMapa() > 0);
 
             if (IsKeyPressed(KEY_C))
             {
@@ -1305,7 +1305,7 @@ int main(void)
 
                 if (!canPlaceMonster)
                 {
-                    strncpy(placeMessage, "Coloque uma carta primeiro!", sizeof(placeMessage) - 1);
+                    strncpy(placeMessage, "Precisa haver carta no mapa para lancar Bakugan!", sizeof(placeMessage) - 1);
                     placedFeedbackTimer = 60;
                 }
                 else if (!TileTemCarta(marcadoGX, marcadoGZ))
@@ -1646,7 +1646,7 @@ int main(void)
 
         if (marcadoGX != -1 && marcadoGZ != -1 && !battleInProgress)
         {
-            bool canPickMonster = (ContarCartasJogadorNoMapa(activePlayer) > 0);
+            bool canPickMonster = (ContarCartasNoMapa() > 0);
             DrawChoicePanel(
                 screenWidth,
                 screenHeight,
