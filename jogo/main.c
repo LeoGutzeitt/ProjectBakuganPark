@@ -474,8 +474,8 @@ static void DrawBattlePortalOverlay(int screenWidth, int screenHeight, TileEntit
 
 int main(void)
 {
-    const int screenWidth = 1880;
-    const int screenHeight = 1080;
+    const int screenWidth = 1880/2;
+    const int screenHeight = 1080/2;
 
     InitWindow(screenWidth, screenHeight, "Movimento em Grade");
     SetExitKey(KEY_NULL);
@@ -578,7 +578,12 @@ int main(void)
     // =========================
 
     Texture2D playerTexture = LoadTexture("img/carta-base.png");
-    Texture2D mapBackground = LoadTexture("jogo/img/fundo bakugan.png");
+    Texture2D mapBackground = LoadTexture("img/fundo branco.png");
+    Texture2D battleGroundTexture = LoadTexture("img/fundo bakugan1.0.png");
+
+    Mesh battleGroundMesh = GenMeshPlane(8.0f, 6.0f, 1, 1);
+    Model battleGroundModel = LoadModelFromMesh(battleGroundMesh);
+    battleGroundModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = battleGroundTexture;
     
     
     CarregarMenu();
@@ -1450,7 +1455,40 @@ int main(void)
         }
         BeginMode3D(camera);
 
-        DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ, battleInProgress);
+        DrawModel(
+            battleGroundModel,
+            (Vector3){ 0.0f, 0.0f, 0.0f },
+            1.0f,
+            WHITE
+        );
+
+        DrawPlane((Vector3){0, 0.001f, 3.5f}, (Vector2){8, 1}, DARKGRAY);
+        DrawPlane((Vector3){0, 0.001f, -3.5f}, (Vector2){8, 1}, DARKGRAY);
+
+        if (!battleInProgress && marcadoGX != -1 && marcadoGZ != -1)
+        {
+            float markX, markZ;
+            GridToWorld(marcadoGX, marcadoGZ, tileWidth, tileDepth, offsetX, offsetZ, &markX, &markZ);
+            DrawCube((Vector3){markX, 0.02f, markZ}, tileWidth, 0.02f, tileDepth, BLUE);
+        }
+
+        for (int i = 0; i <= gridSizeZ; i++)
+        {
+            DrawLine3D(
+                (Vector3){-offsetX, 0.03f, -offsetZ + i * tileDepth},
+                (Vector3){ offsetX, 0.03f, -offsetZ + i * tileDepth},
+                BLACK
+            );
+        }
+
+        for (int i = 0; i <= gridSizeX; i++)
+        {
+            DrawLine3D(
+                (Vector3){-offsetX + i * tileWidth, 0.03f, -offsetZ},
+                (Vector3){-offsetX + i * tileWidth, 0.03f,  offsetZ},
+                BLACK
+            );
+        }
 
         
         if (!battleInProgress)
@@ -1717,8 +1755,11 @@ int main(void)
     }
 
     UnloadModel(cardModel);
+    UnloadModel(battleGroundModel);
+
     UnloadTexture(playerTexture);
     UnloadTexture(mapBackground);
+    UnloadTexture(battleGroundTexture);
     DescarregarAnimacoesBakugan();
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);
