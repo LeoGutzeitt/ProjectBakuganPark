@@ -146,3 +146,28 @@ Algumas funcionalidades ainda podem ser ajustadas ou melhoradas, como balanceame
 ## Autor
 
 Projeto desenvolvido por estudantes da disciplina de **Programação Imperativa e Funcional (PIF)**.
+
+##MAKEFILE
+
+```txt
+CC = gcc
+CFLAGS = -g -O2
+LDFLAGS = -lraylib -lm -lpthread -ldl -lrt -lX11
+
+SRCS = jogo/main.c jogo/battle_map.c jogo/card.c jogo/monster.c jogo/game_state.c jogo/ui.c jogo/menu.c jogo/stats.c
+TARGET = jogo/game
+
+.PHONY: all run clean
+
+all: $(TARGET)
+
+$(TARGET): $(SRCS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS) $(LDFLAGS)
+
+run: $(TARGET)
+	cd $(dir $(TARGET)) && ./$(notdir $(TARGET))
+
+clean:
+	rm -f $(TARGET)
+
+```
