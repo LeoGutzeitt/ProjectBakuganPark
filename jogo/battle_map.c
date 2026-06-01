@@ -10,10 +10,9 @@ void GridToWorld(int gx, int gz, float tileWidth, float tileDepth, float offsetX
 
 void DrawBattleMap(int gridSizeX, int gridSizeZ, float tileWidth, float tileDepth, float offsetX, float offsetZ, int marcadoGX, int marcadoGZ, bool battleInProgress)
 {
-    // Chão
-    DrawPlane((Vector3){0,0,0}, (Vector2){8,6}, GREEN);
-    DrawPlane((Vector3){0,0,3.5f}, (Vector2){8,1}, DARKGRAY);
-    DrawPlane((Vector3){0,0,-3.5f}, (Vector2){8,1}, DARKGRAY);
+    // Chão: desenhado externamente como imagem de fundo (full-screen)
+    // Removemos os DrawPlane coloridos para permitir que a textura de fundo
+    // (desenhada em tela cheia em main.c) fique visível por baixo do mapa 3D.
 
     // Marcação
     if (!battleInProgress && marcadoGX != -1 && marcadoGZ != -1)

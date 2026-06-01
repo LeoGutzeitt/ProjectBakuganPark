@@ -578,6 +578,7 @@ int main(void)
     // =========================
 
     Texture2D playerTexture = LoadTexture("img/carta-base.png");
+    Texture2D mapBackground = LoadTexture("jogo/img/fundo bakugan.png");
     
     
     CarregarMenu();
@@ -606,7 +607,7 @@ int main(void)
     Model cardModel = LoadModelFromMesh(cardMesh);
 
     ConfigureCardModel(&cardModel, playerTexture);
-
+    
     // LOOP PRINCIPAL
     // =========================
 
@@ -1435,6 +1436,18 @@ int main(void)
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
+        if (screen == TELA_BATALHA)
+        {
+            DrawTexturePro(
+                mapBackground,
+                (Rectangle){ 0.0f, 0.0f, (float)mapBackground.width, (float)mapBackground.height },
+                (Rectangle){ 0.0f, 0.0f, (float)screenWidth, (float)screenHeight },
+                (Vector2){ 0.0f, 0.0f },
+                0.0f,
+                WHITE
+            );
+            DrawRectangle(0, 0, screenWidth, screenHeight, (Color){ 0, 0, 0, 40 });
+        }
         BeginMode3D(camera);
 
         DrawBattleMap(gridSizeX, gridSizeZ, tileWidth, tileDepth, offsetX, offsetZ, marcadoGX, marcadoGZ, battleInProgress);
@@ -1632,14 +1645,17 @@ int main(void)
         }
 
         if (marcadoGX != -1 && marcadoGZ != -1 && !battleInProgress)
-        if (marcadoGX != -1 && marcadoGZ != -1 && !battleInProgress)
         {
             bool canPickMonster = (ContarCartasJogadorNoMapa(activePlayer) > 0);
-            DrawSelectionMenu(
+            DrawChoicePanel(
                 screenWidth,
                 screenHeight,
-                canPickMonster,
                 activePlayer,
+                canPickMonster,
+                false,
+                false,
+                NULL,
+                -1,
                 deckSetup.cardTypes[activePlayer],
                 deckSetup.monsterTypes[activePlayer],
                 deckSetup.monsterElements[activePlayer]
@@ -1652,13 +1668,15 @@ int main(void)
                 ? playerCards[placementChoice.player]
                 : playerMonsters[placementChoice.player];
 
-            DrawPlacementSlotMenu(
+            DrawChoicePanel(
                 screenWidth,
                 screenHeight,
                 placementChoice.player,
+                placementChoice.type == PLACEMENT_MONSTER,
+                true,
+                placementChoice.type == PLACEMENT_MONSTER,
                 slots,
                 placementChoice.slot,
-                placementChoice.type == PLACEMENT_MONSTER,
                 deckSetup.cardTypes[placementChoice.player],
                 deckSetup.monsterTypes[placementChoice.player],
                 deckSetup.monsterElements[placementChoice.player]
@@ -1700,6 +1718,7 @@ int main(void)
 
     UnloadModel(cardModel);
     UnloadTexture(playerTexture);
+    UnloadTexture(mapBackground);
     DescarregarAnimacoesBakugan();
     UnloadTexture(iconP1);
     UnloadTexture(iconP2);

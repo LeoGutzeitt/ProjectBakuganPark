@@ -26,11 +26,10 @@ void DesenharTelaMenuPrincipal(int screenWidth, int screenHeight);
 void DesenharTelaVitoria(int screenWidth, int screenHeight, int jogadorVencedor, int player1Score, int player2Score);
 
 void DrawBottomMenu(int screenWidth, int screenHeight, int activePlayer, int playerCards[2][3], int playerMonsters[2][3]);
-void DrawSelectionMenu(int screenWidth, int screenHeight, bool canPickMonster, int activePlayer, const int cardTypes[3], const int monsterTypes[3], const int monsterElements[3]);
+void DrawChoicePanel(int screenWidth, int screenHeight, int activePlayer, bool canPickMonster, bool selectingSlot, bool selectingMonster, const int availableSlots[3], int selectedSlot, const int cardTypes[3], const int monsterTypes[3], const int monsterElements[3]);
 
 void DrawScoreBoard(int screenWidth, int hudY, int player1Score, int player2Score, Texture2D iconP1, Texture2D iconP2);
 void DrawBattleActivationPrompt(int screenWidth, int screenHeight, bool p0Present, bool p1Present, bool p0Activated, bool p1Activated);
-void DrawPlacementSlotMenu(int screenWidth, int screenHeight, int activePlayer, const int availableSlots[3], int selectedSlot, bool selectingMonster, const int cardTypes[3], const int monsterTypes[3], const int monsterElements[3]);
 void DrawBattleCardPreview(int screenWidth, int screenHeight, int owner, int cardType, int slot, Texture2D cardTexture, bool opening);
 void DrawMinimalBattleUI(int screenWidth, int screenHeight, int tileGX, int tileGZ, bool portalOpening, bool awaitingActivation, bool statusApplied, int battlePortalTimer);
 void DrawGameHints(int screenWidth, int screenHeight, const char *placeMessage);
